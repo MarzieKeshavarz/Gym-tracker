@@ -1,24 +1,55 @@
 import React, { useState, useMemo } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine
+  Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { getExerciseHistory, getLogs, formatDate } from '../utils/storage.js'
+import { useUser } from '../context/UserContext.jsx'
+import { usePlan } from '../context/PlanContext.jsx'
+import { getExerciseHistory, formatDate } from '../utils/storage.js'
 
-export default function ProgressView({ plan, onBack }) {
-  const [selectedDayId, setSelectedDayId] = useState(plan.days[0]?.id)
+export default function ProgressView({ onBack }) {
+  const { currentUser } = useUser()
+  const { activePlan } = usePlan()
+
+  const [selectedSectionId, setSelectedSectionId] = useState(activePlan?.sections[0]?.id)
   const [selectedExerciseId, setSelectedExerciseId] = useState(null)
 
-  const selectedDay = plan.days.find(d => d.id === selectedDayId)
+  if (!activePlan || activePlan.sections.length === 0) {
+    return (
+      <div className="flex flex-col gap-5 slide-up pb-8">
+        <div className="flex items-center gap-4 pt-2">
+          <button
+            onClick={onBack}
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface2 border border-border text-muted active:scale-95 transition-all flex-shrink-0"
+          >
+            ‹
+          </button>
+          <div>
+            <p className="label mb-0.5">Progress Tracker</p>
+            <h1 className="font-display font-black text-3xl uppercase tracking-tight text-text">
+              Analytics
+            </h1>
+          </div>
+        </div>
+        <div className="card text-center py-10">
+          <p className="text-4xl mb-3">📊</p>
+          <p className="text-text font-display font-bold text-xl uppercase">Nothing to show</p>
+          <p className="text-muted text-sm mt-1">Add sections and exercises to your plan first</p>
+        </div>
+      </div>
+    )
+  }
 
-  // Auto-select first exercise when day changes
-  const exerciseId = selectedExerciseId || selectedDay?.exercises[0]?.id
-  const exercise = selectedDay?.exercises.find(e => e.id === exerciseId)
+  const selectedSection = activePlan.sections.find(s => s.id === selectedSectionId)
+    || activePlan.sections[0]
+
+  const exerciseId = selectedExerciseId || selectedSection?.exercises[0]?.id
+  const exercise = selectedSection?.exercises.find(e => e.id === exerciseId)
 
   const history = useMemo(() => {
-    if (!exerciseId) return []
-    return getExerciseHistory(exerciseId)
-  }, [exerciseId])
+    if (!exerciseId || !currentUser) return []
+    return getExerciseHistory(currentUser.id, activePlan.id, exerciseId)
+  }, [exerciseId, currentUser, activePlan])
 
   const stats = useMemo(() => {
     if (!history.length) return null
@@ -41,16 +72,12 @@ export default function ProgressView({ plan, onBack }) {
       <div className="bg-surface2 border border-border rounded-lg p-3 shadow-xl">
         <p className="text-muted text-xs mb-1">{label}</p>
         <p className="text-accent font-display font-bold text-lg">{payload[0].value}kg</p>
-        {payload[1] && (
-          <p className="text-muted text-xs">Vol: {payload[1].value}</p>
-        )}
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-5 slide-up pb-8">
-      {/* Header */}
       <div className="flex items-center gap-4 pt-2">
         <button
           onClick={onBack}
@@ -58,67 +85,70 @@ export default function ProgressView({ plan, onBack }) {
         >
           ‹
         </button>
-        <div>
-          <p className="label mb-0.5">Progress Tracker</p>
+        <div className="min-w-0">
+          <p className="label mb-0.5 truncate">{activePlan.name}</p>
           <h1 className="font-display font-black text-3xl uppercase tracking-tight text-text">
-            Analytics
+            Progress
           </h1>
         </div>
       </div>
 
-      {/* Day tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 no-scrollbar">
-        {plan.days.map(day => (
+        {activePlan.sections.map(section => (
           <button
-            key={day.id}
-            onClick={() => { setSelectedDayId(day.id); setSelectedExerciseId(null) }}
+            key={section.id}
+            onClick={() => { setSelectedSectionId(section.id); setSelectedExerciseId(null) }}
             className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-display font-bold uppercase tracking-wide transition-all active:scale-95 ${
-              selectedDayId === day.id
+              selectedSection?.id === section.id
                 ? 'text-base'
                 : 'bg-surface2 border border-border text-muted'
             }`}
-            style={selectedDayId === day.id ? { backgroundColor: day.color, color: '#0a0a0a' } : {}}
+            style={selectedSection?.id === section.id ? { backgroundColor: section.color, color: '#0a0a0a' } : {}}
           >
-            {day.icon} {day.name}
+            {section.icon} {section.name}
           </button>
         ))}
       </div>
 
-      {/* Exercise selector */}
-      {selectedDay && (
+      {selectedSection && (
         <div className="flex flex-col gap-2">
           <p className="label">Exercise</p>
-          <div className="grid grid-cols-2 gap-2">
-            {selectedDay.exercises.map(ex => {
-              const hist = getExerciseHistory(ex.id)
-              const hasData = hist.length > 0
-              return (
-                <button
-                  key={ex.id}
-                  onClick={() => setSelectedExerciseId(ex.id)}
-                  className={`card text-left py-3 px-3 transition-all active:scale-95 ${
-                    exerciseId === ex.id ? 'border-accent/50 bg-accent/5' : ''
-                  }`}
-                >
-                  <p className={`font-body font-semibold text-sm leading-tight ${exerciseId === ex.id ? 'text-accent' : 'text-text'}`}>
-                    {ex.name}
-                  </p>
-                  <p className="text-muted text-xs mt-1">
-                    {hasData ? `${hist.length} session${hist.length !== 1 ? 's' : ''}` : 'No data'}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
+          {selectedSection.exercises.length === 0 ? (
+            <div className="card text-center py-6">
+              <p className="text-muted text-sm">This section has no exercises</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {selectedSection.exercises.map(ex => {
+                const hist = currentUser
+                  ? getExerciseHistory(currentUser.id, activePlan.id, ex.id)
+                  : []
+                const hasData = hist.length > 0
+                return (
+                  <button
+                    key={ex.id}
+                    onClick={() => setSelectedExerciseId(ex.id)}
+                    className={`card text-left py-3 px-3 transition-all active:scale-95 ${
+                      exerciseId === ex.id ? 'border-accent/50 bg-accent/5' : ''
+                    }`}
+                  >
+                    <p className={`font-body font-semibold text-sm leading-tight ${exerciseId === ex.id ? 'text-accent' : 'text-text'}`}>
+                      {ex.name}
+                    </p>
+                    <p className="text-muted text-xs mt-1">
+                      {hasData ? `${hist.length} session${hist.length !== 1 ? 's' : ''}` : 'No data'}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Stats cards */}
       {stats && exercise && (
         <div className="flex flex-col gap-3">
-          <p className="label">
-            {exercise.name} — Stats
-          </p>
+          <p className="label">{exercise.name} — Stats</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="card text-center">
               <p className="font-display font-black text-3xl text-accent">{stats.max}kg</p>
@@ -142,7 +172,6 @@ export default function ProgressView({ plan, onBack }) {
         </div>
       )}
 
-      {/* Chart */}
       {history.length >= 2 && (
         <div className="card">
           <p className="label mb-4">Weight Progression</p>
@@ -181,7 +210,6 @@ export default function ProgressView({ plan, onBack }) {
         </div>
       )}
 
-      {/* Session history list */}
       {history.length > 0 && (
         <div>
           <p className="label mb-3">Session History</p>
@@ -189,9 +217,7 @@ export default function ProgressView({ plan, onBack }) {
             {[...history].reverse().map((entry, i) => (
               <div key={i} className="card">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-text font-body font-medium text-sm">
-                    {formatDate(entry.date)}
-                  </p>
+                  <p className="text-text font-body font-medium text-sm">{formatDate(entry.date)}</p>
                   <div className="flex items-center gap-2">
                     <span className="text-accent font-display font-bold">
                       {entry.maxWeight}kg
@@ -206,9 +232,7 @@ export default function ProgressView({ plan, onBack }) {
                     </span>
                   ))}
                 </div>
-                <p className="text-muted text-xs mt-2">
-                  Total volume: {entry.totalVolume}kg
-                </p>
+                <p className="text-muted text-xs mt-2">Total volume: {entry.totalVolume}kg</p>
               </div>
             ))}
           </div>

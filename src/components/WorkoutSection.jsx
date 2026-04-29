@@ -1,9 +1,13 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import ExerciseLogger from './ExerciseLogger.jsx'
-import { getLastLogForExercise, saveLog, getLogs, genId } from '../utils/storage.js'
+import { useUser } from '../context/UserContext.jsx'
+import { usePlan } from '../context/PlanContext.jsx'
+import { getLastLogForExercise, saveLog, genId } from '../utils/storage.js'
 
-export default function WorkoutDay({ day, onBack, onSaved }) {
-  // Initialize sets state for each exercise
+export default function WorkoutSection({ section, onBack, onSaved }) {
+  const { currentUserId } = useUser()
+  const { activePlan } = usePlan()
+
   const initializeSets = (exercise) => {
     const count = Math.max(exercise.targetSets, 1)
     return Array.from({ length: count }, () => ({ weight: '', reps: '' }))
@@ -11,9 +15,7 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
 
   const [exerciseSets, setExerciseSets] = useState(() => {
     const init = {}
-    day.exercises.forEach(ex => {
-      init[ex.id] = initializeSets(ex)
-    })
+    section.exercises.forEach(ex => { init[ex.id] = initializeSets(ex) })
     return init
   })
 
@@ -22,7 +24,6 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
   const [startTime] = useState(() => new Date().toISOString())
   const [elapsed, setElapsed] = useState(0)
 
-  // Workout timer
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsed(Math.floor((Date.now() - new Date(startTime)) / 1000))
@@ -36,32 +37,32 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  // Last session data per exercise
+  // Last entries scoped to current user + active plan + this exercise
   const lastEntries = useMemo(() => {
     const map = {}
-    day.exercises.forEach(ex => {
-      map[ex.id] = getLastLogForExercise(ex.id)
+    if (!currentUserId || !activePlan) return map
+    section.exercises.forEach(ex => {
+      map[ex.id] = getLastLogForExercise(currentUserId, activePlan.id, ex.id)
     })
     return map
-  }, [day])
+  }, [section, currentUserId, activePlan])
 
   const updateSets = useCallback((exerciseId, newSets) => {
     setExerciseSets(prev => ({ ...prev, [exerciseId]: newSets }))
   }, [])
 
-  // Count completed exercises
   const completedCount = useMemo(() => {
-    return day.exercises.filter(ex => {
+    return section.exercises.filter(ex => {
       const sets = exerciseSets[ex.id] || []
       return sets.some(s => s.weight !== '' || s.reps !== '')
     }).length
-  }, [day.exercises, exerciseSets])
+  }, [section.exercises, exerciseSets])
 
   const handleSave = useCallback(async () => {
+    if (!currentUserId || !activePlan) return
     setSaving(true)
 
-    // Build log entry
-    const exerciseLogs = day.exercises
+    const exerciseLogs = section.exercises
       .map(ex => {
         const sets = (exerciseSets[ex.id] || [])
           .filter(s => s.weight !== '' || s.reps !== '')
@@ -84,9 +85,11 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
 
     const log = {
       id: genId(),
+      userId: currentUserId,
+      planId: activePlan.id,
+      sectionId: section.id,
+      sectionName: section.name,
       date: startTime,
-      dayId: day.id,
-      dayName: day.name,
       exercises: exerciseLogs,
     }
 
@@ -94,7 +97,7 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
     setSaving(false)
     setSaved(true)
     setTimeout(() => onSaved(), 1000)
-  }, [day, exerciseSets, startTime, onSaved])
+  }, [section, exerciseSets, startTime, onSaved, currentUserId, activePlan])
 
   if (saved) {
     return (
@@ -110,7 +113,6 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
 
   return (
     <div className="flex flex-col gap-5 slide-up pb-24">
-      {/* Header */}
       <div className="flex items-start gap-4 pt-2">
         <button
           onClick={onBack}
@@ -119,32 +121,30 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
           ‹
         </button>
         <div className="flex-1">
-          <p className="label mb-1">{day.icon} Workout</p>
+          <p className="label mb-1">{section.icon} Workout</p>
           <h1 className="font-display font-black text-4xl uppercase tracking-tight text-text leading-none">
-            {day.name}
+            {section.name}
           </h1>
           <div className="flex items-center gap-3 mt-2">
             <span className="text-muted text-sm">⏱ {formatElapsed(elapsed)}</span>
             <span className="text-muted text-xs">·</span>
-            <span className="text-muted text-sm">{completedCount}/{day.exercises.length} done</span>
+            <span className="text-muted text-sm">{completedCount}/{section.exercises.length} done</span>
           </div>
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="h-1 bg-surface2 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
-            width: `${(completedCount / day.exercises.length) * 100}%`,
-            backgroundColor: day.color,
+            width: `${(completedCount / Math.max(section.exercises.length, 1)) * 100}%`,
+            backgroundColor: section.color,
           }}
         />
       </div>
 
-      {/* Exercises */}
       <div className="flex flex-col gap-4">
-        {day.exercises.map((exercise) => (
+        {section.exercises.map((exercise) => (
           <ExerciseLogger
             key={exercise.id}
             exercise={exercise}
@@ -155,7 +155,12 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
         ))}
       </div>
 
-      {/* Notes placeholder */}
+      {section.exercises.length === 0 && (
+        <div className="card text-center py-8">
+          <p className="text-muted text-sm">This section has no exercises. Add some in the plan editor.</p>
+        </div>
+      )}
+
       <div className="card">
         <p className="label mb-2">Session Notes (optional)</p>
         <textarea
@@ -165,19 +170,20 @@ export default function WorkoutDay({ day, onBack, onSaved }) {
         />
       </div>
 
-      {/* Save button – sticky */}
       <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-base via-base/95 to-transparent pt-8">
-        <button
-          onClick={handleSave}
-          disabled={saving || completedCount === 0}
-          className={`w-full py-4 rounded-xl font-display font-black text-xl uppercase tracking-widest transition-all active:scale-95 ${
-            completedCount > 0
-              ? 'bg-accent text-base accent-glow'
-              : 'bg-surface2 text-muted border border-border cursor-not-allowed'
-          }`}
-        >
-          {saving ? 'Saving…' : `Save Workout · ${completedCount} Exercises`}
-        </button>
+        <div className="max-w-lg mx-auto">
+          <button
+            onClick={handleSave}
+            disabled={saving || completedCount === 0}
+            className={`w-full py-4 rounded-xl font-display font-black text-xl uppercase tracking-widest transition-all active:scale-95 ${
+              completedCount > 0
+                ? 'bg-accent text-base accent-glow'
+                : 'bg-surface2 text-muted border border-border cursor-not-allowed'
+            }`}
+          >
+            {saving ? 'Saving…' : `Save Workout · ${completedCount} Exercises`}
+          </button>
+        </div>
       </div>
     </div>
   )

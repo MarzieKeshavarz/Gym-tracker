@@ -1,6 +1,8 @@
-// Default 4-day workout plan
-export const DEFAULT_PLAN = {
-  days: [
+// Default plan template. Used as a starting point when a user creates their
+// first plan, and as the source of the legacy-data migration.
+export const DEFAULT_PLAN_TEMPLATE = {
+  name: 'My Plan',
+  sections: [
     {
       id: 'lower-body',
       name: 'Lower Body',
@@ -57,3 +59,13 @@ export const DEFAULT_PLAN = {
     },
   ],
 }
+
+export const SECTION_PRESETS = {
+  icons: ['🏋️', '🦵', '💪', '🧘', '🏃', '🚴', '🤸', '🥊', '🧗', '🏊'],
+  colors: ['#c8ff00', '#ff6b35', '#a78bfa', '#38bdf8', '#f472b6', '#34d399'],
+}
+
+export const USER_AVATARS = [
+  '🏋️', '💪', '🤸', '🧘', '🏃', '🚴', '🥊', '🧗', '🏊', '⚡',
+  '🔥', '🌟', '🎯', '👟', '🦾', '🧠',
+]
