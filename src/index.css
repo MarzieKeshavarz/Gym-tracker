@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    background-color: #0a0a0a;
+    color: #f0f0f0;
+    font-family: 'Barlow', sans-serif;
+    overscroll-behavior: none;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent text-base font-display font-bold text-lg px-6 py-3 rounded-lg tracking-wide uppercase transition-all active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply bg-surface2 text-text font-body px-5 py-3 rounded-lg transition-all active:scale-95 border border-border;
+  }
+
+  .card {
+    @apply bg-surface rounded-xl border border-border p-4;
+  }
+
+  .input-field {
+    @apply bg-surface2 border border-border rounded-lg px-3 py-2 text-text text-center font-body text-base w-full focus:outline-none focus:border-accent transition-colors;
+  }
+
+  .label {
+    @apply text-muted text-xs font-body uppercase tracking-widest;
+  }
+
+  .page-title {
+    @apply font-display font-black uppercase tracking-wide text-4xl text-text;
+  }
+
+  .section-title {
+    @apply font-display font-bold uppercase tracking-wide text-2xl text-text;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+/* Safe area support for iPhone notch */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Accent glow effect */
+.accent-glow {
+  box-shadow: 0 0 20px rgba(200, 255, 0, 0.15);
+}
+
+/* Slide-up animation */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.slide-up {
+  animation: slideUp 0.25s ease-out both;
+}
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in {
+  animation: fadeIn 0.2s ease-out both;
+}
+
+/* Pulse on last value highlight */
+@keyframes pulse-lime {
+  0%, 100% { background-color: rgba(200, 255, 0, 0.08); }
+  50% { background-color: rgba(200, 255, 0, 0.18); }
+}
+.highlight-pulse {
+  animation: pulse-lime 2s ease-in-out 1;
+}
