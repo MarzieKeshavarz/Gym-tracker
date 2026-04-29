@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/gym-tracker/', // Change this to your GitHub repo name
+  base: '/Gym-tracker/',
 })
