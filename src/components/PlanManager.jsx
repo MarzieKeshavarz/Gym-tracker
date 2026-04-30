@@ -1,13 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { usePlan } from '../context/PlanContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { buildPlanFromTemplate, buildBlankPlan, formatDateRange } from '../utils/storage.js'
+import { isSupabaseConfigured } from '../sync/supabaseClient.js'
+import { getSyncCode, formatSyncCode, subscribeSyncState, getSyncState } from '../sync/syncManager.js'
 
-export default function PlanManager({ onBack, onEditPlan }) {
+export default function PlanManager({ onBack, onEditPlan, onGoToSync }) {
   const { currentUserId } = useUser()
   const { plans, savePlan, deletePlan, activatePlan } = usePlan()
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [showCreateMenu, setShowCreateMenu] = useState(false)
+  const [syncState, setSyncState] = useState(() => getSyncState())
+  const syncCode = getSyncCode()
+  const syncConfigured = isSupabaseConfigured()
+
+  useEffect(() => subscribeSyncState(setSyncState), [])
 
   const handleCreate = (kind) => {
     const plan = kind === 'template'
@@ -111,6 +118,35 @@ export default function PlanManager({ onBack, onEditPlan }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Sync entry */}
+      {onGoToSync && (
+        <button
+          onClick={onGoToSync}
+          className="card flex items-center gap-3 active:scale-[0.99] transition-all text-left"
+        >
+          <div className="w-10 h-10 rounded-lg bg-surface2 border border-border flex items-center justify-center flex-shrink-0">
+            <span className="text-lg">☁️</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-text font-display font-bold text-base uppercase tracking-wide">Sync</p>
+            <p className="text-muted text-xs mt-0.5 truncate">
+              {!syncConfigured
+                ? 'Not configured — see SETUP.md'
+                : syncCode
+                  ? `Code · ${formatSyncCode(syncCode)}${syncState.status === 'syncing' ? ' · syncing…' : ''}`
+                  : 'Off — tap to set up'}
+            </p>
+          </div>
+          {syncCode && syncState.status === 'ok' && (
+            <span className="w-2 h-2 rounded-full bg-accent flex-shrink-0" />
+          )}
+          {syncCode && syncState.status === 'error' && (
+            <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+          )}
+          <span className="text-muted text-lg flex-shrink-0">›</span>
+        </button>
       )}
 
       {showCreateMenu ? (

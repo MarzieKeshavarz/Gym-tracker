@@ -7,6 +7,8 @@ import WorkoutSection from './components/WorkoutSection.jsx'
 import ProgressView from './components/ProgressView.jsx'
 import PlanManager from './components/PlanManager.jsx'
 import PlanEditor from './components/PlanEditor.jsx'
+import SyncSettings from './components/SyncSettings.jsx'
+import { startSync } from './sync/syncManager.js'
 
 const VIEWS = {
   DASHBOARD: 'dashboard',
@@ -14,6 +16,7 @@ const VIEWS = {
   PROGRESS: 'progress',
   PLANS: 'plans',
   PLAN_EDIT: 'plan-edit',
+  SYNC: 'sync',
 }
 
 export default function App() {
@@ -33,6 +36,11 @@ function Shell() {
   const [view, setView] = useState(VIEWS.DASHBOARD)
   const [selectedSection, setSelectedSection] = useState(null)
   const [editingPlanId, setEditingPlanId] = useState(null)
+
+  // Kick off sync once on mount. The manager guards against duplicate starts.
+  useEffect(() => {
+    startSync()
+  }, [])
 
   // Scroll to top on view change
   useEffect(() => {
@@ -118,6 +126,7 @@ function Shell() {
           <PlanManager
             onBack={activePlan ? goToDashboard : null}
             onEditPlan={handleEditPlan}
+            onGoToSync={() => setView(VIEWS.SYNC)}
           />
         )}
 
@@ -126,6 +135,10 @@ function Shell() {
             planId={editingPlanId}
             onBack={() => setView(VIEWS.PLANS)}
           />
+        )}
+
+        {view === VIEWS.SYNC && (
+          <SyncSettings onBack={() => setView(activePlan ? VIEWS.PLANS : VIEWS.PLANS)} />
         )}
       </main>
 

@@ -29,12 +29,24 @@ export function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
+// ─── Sync hook ───────────────────────────────────────────────────────────────
+// The sync manager registers a listener here; storage calls notifyChange()
+// after any local mutation so sync can debounce and push.
+
+let changeListener = null
+
+export function registerChangeListener(fn) {
+  changeListener = fn
+}
+
+function notifyChange() {
+  if (changeListener) {
+    try { changeListener() } catch { /* ignore */ }
+  }
+}
+
 // ─── Migration ───────────────────────────────────────────────────────────────
 
-/**
- * One-shot migration from the single-user / single-plan schema to the new
- * multi-user / multi-plan schema. Idempotent — safe to call on every load.
- */
 export function migrateLegacyData() {
   if (localStorage.getItem(MIGRATION_FLAG_KEY)) return
 
@@ -56,7 +68,8 @@ export function migrateLegacyData() {
     exercises: d.exercises || [],
   }))
 
-  const user = { id: genId(), name: 'You', avatar: '🏋️' }
+  const now = Date.now()
+  const user = { id: genId(), name: 'You', avatar: '🏋️', updatedAt: now }
   const plan = {
     id: genId(),
     userId: user.id,
@@ -65,6 +78,7 @@ export function migrateLegacyData() {
     endDate: null,
     isActive: true,
     sections,
+    updatedAt: now,
   }
 
   const migratedLogs = legacyLogs.map(l => ({
@@ -73,6 +87,7 @@ export function migrateLegacyData() {
     planId: plan.id,
     sectionId: l.sectionId ?? l.dayId,
     sectionName: l.sectionName ?? l.dayName,
+    updatedAt: l.updatedAt ?? new Date(l.date).getTime(),
   }))
 
   writeJSON(USERS_KEY, [user])
@@ -83,32 +98,62 @@ export function migrateLegacyData() {
   localStorage.setItem(MIGRATION_FLAG_KEY, '1')
 }
 
+// ─── Tombstone-aware reading ─────────────────────────────────────────────────
+// Internal getters return *living* entities only (deletedAt undefined). The
+// sync layer needs raw access (including tombstones) — it uses getRaw*().
+
+const isLive = (e) => !e.deletedAt
+
+function stamp(entity) {
+  return { ...entity, updatedAt: Date.now() }
+}
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 export function getUsers() {
+  return readJSON(USERS_KEY, []).filter(isLive)
+}
+
+export function getRawUsers() {
   return readJSON(USERS_KEY, [])
 }
 
-export function saveUsers(users) {
+export function setRawUsers(users) {
   writeJSON(USERS_KEY, users)
 }
 
 export function addUser({ name, avatar }) {
-  const users = getUsers()
-  const user = { id: genId(), name: name.trim() || 'User', avatar: avatar || '🏋️' }
+  const users = readJSON(USERS_KEY, [])
+  const user = stamp({ id: genId(), name: name.trim() || 'User', avatar: avatar || '🏋️' })
   users.push(user)
-  saveUsers(users)
+  writeJSON(USERS_KEY, users)
+  notifyChange()
   return user
 }
 
 export function deleteUser(userId) {
-  saveUsers(getUsers().filter(u => u.id !== userId))
-  // Cascade: drop plans + logs for that user
-  writeJSON(PLANS_KEY, getAllPlans().filter(p => p.userId !== userId))
-  writeJSON(LOGS_KEY, getAllLogs().filter(l => l.userId !== userId))
+  // Tombstone the user
+  const users = readJSON(USERS_KEY, []).map(u =>
+    u.id === userId ? { ...u, deletedAt: Date.now(), updatedAt: Date.now() } : u
+  )
+  writeJSON(USERS_KEY, users)
+
+  // Cascade: tombstone every plan and log for that user
+  const now = Date.now()
+  const plans = readJSON(PLANS_KEY, []).map(p =>
+    p.userId === userId ? { ...p, deletedAt: now, updatedAt: now } : p
+  )
+  writeJSON(PLANS_KEY, plans)
+
+  const logs = readJSON(LOGS_KEY, []).map(l =>
+    l.userId === userId ? { ...l, deletedAt: now, updatedAt: now } : l
+  )
+  writeJSON(LOGS_KEY, logs)
+
   if (getCurrentUserId() === userId) {
     localStorage.removeItem(CURRENT_USER_KEY)
   }
+  notifyChange()
 }
 
 export function getCurrentUserId() {
@@ -129,7 +174,15 @@ export function getCurrentUser() {
 // ─── Plans ───────────────────────────────────────────────────────────────────
 
 function getAllPlans() {
+  return readJSON(PLANS_KEY, []).filter(isLive)
+}
+
+export function getRawPlans() {
   return readJSON(PLANS_KEY, [])
+}
+
+export function setRawPlans(plans) {
+  writeJSON(PLANS_KEY, plans)
 }
 
 export function getPlans(userId) {
@@ -142,40 +195,58 @@ export function getActivePlan(userId) {
   return getPlans(userId).find(p => p.isActive) || null
 }
 
-/**
- * Insert or update a plan. Returns the saved plan.
- */
 export function savePlan(plan) {
-  const all = getAllPlans()
+  const all = readJSON(PLANS_KEY, [])
   const idx = all.findIndex(p => p.id === plan.id)
-  if (idx === -1) all.push(plan)
-  else all[idx] = plan
+  const stamped = stamp(plan)
+  if (idx === -1) all.push(stamped)
+  else all[idx] = stamped
   writeJSON(PLANS_KEY, all)
-  return plan
+  notifyChange()
+  return stamped
 }
 
 export function deletePlan(planId) {
-  writeJSON(PLANS_KEY, getAllPlans().filter(p => p.id !== planId))
-  writeJSON(LOGS_KEY, getAllLogs().filter(l => l.planId !== planId))
+  const now = Date.now()
+  const all = readJSON(PLANS_KEY, []).map(p =>
+    p.id === planId ? { ...p, deletedAt: now, updatedAt: now } : p
+  )
+  writeJSON(PLANS_KEY, all)
+  // Tombstone child logs too
+  const logs = readJSON(LOGS_KEY, []).map(l =>
+    l.planId === planId ? { ...l, deletedAt: now, updatedAt: now } : l
+  )
+  writeJSON(LOGS_KEY, logs)
+  notifyChange()
 }
 
-/**
- * Activates one plan and deactivates every other plan for the same user.
- */
 export function activatePlan(planId) {
-  const all = getAllPlans()
+  const all = readJSON(PLANS_KEY, [])
   const target = all.find(p => p.id === planId)
   if (!target) return
-  const updated = all.map(p =>
-    p.userId !== target.userId ? p : { ...p, isActive: p.id === planId }
-  )
+  const now = Date.now()
+  const updated = all.map(p => {
+    if (p.userId !== target.userId) return p
+    const shouldBeActive = p.id === planId
+    if (p.isActive === shouldBeActive) return p
+    return { ...p, isActive: shouldBeActive, updatedAt: now }
+  })
   writeJSON(PLANS_KEY, updated)
+  notifyChange()
 }
 
 // ─── Logs ────────────────────────────────────────────────────────────────────
 
 function getAllLogs() {
+  return readJSON(LOGS_KEY, []).filter(isLive)
+}
+
+export function getRawLogs() {
   return readJSON(LOGS_KEY, [])
+}
+
+export function setRawLogs(logs) {
+  writeJSON(LOGS_KEY, logs)
 }
 
 export function getLogs(userId, planId) {
@@ -186,20 +257,23 @@ export function getLogs(userId, planId) {
 }
 
 export function saveLog(log) {
-  const logs = getAllLogs()
-  logs.push(log)
+  const logs = readJSON(LOGS_KEY, [])
+  logs.push(stamp(log))
   writeJSON(LOGS_KEY, logs)
+  notifyChange()
 }
 
 export function deleteLog(logId) {
-  writeJSON(LOGS_KEY, getAllLogs().filter(l => l.id !== logId))
+  const now = Date.now()
+  const logs = readJSON(LOGS_KEY, []).map(l =>
+    l.id === logId ? { ...l, deletedAt: now, updatedAt: now } : l
+  )
+  writeJSON(LOGS_KEY, logs)
+  notifyChange()
 }
 
 // ─── Last-workout / progress helpers (scoped) ───────────────────────────────
 
-/**
- * Get the most recent set data for a given exercise, scoped to user + plan.
- */
 export function getLastLogForExercise(userId, planId, exerciseId) {
   const logs = getLogs(userId, planId)
   let lastEntry = null
@@ -281,10 +355,6 @@ export function getDashboardStats(userId, planId) {
 
 // ─── Plan template helpers ───────────────────────────────────────────────────
 
-/**
- * Build a fresh plan object pre-filled with the default template.
- * Each section/exercise gets a unique id so it doesn't collide with other plans.
- */
 export function buildPlanFromTemplate(userId, name = 'My Plan') {
   return {
     id: genId(),
