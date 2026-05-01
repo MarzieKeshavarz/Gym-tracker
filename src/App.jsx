@@ -81,8 +81,11 @@ function Shell() {
     )
   }
 
-  // 2. User selected but no active plan → plan manager (or editor for the first plan)
-  const showPlansFlow = !activePlan && view !== VIEWS.PLAN_EDIT && view !== VIEWS.PLANS
+  // 2. User selected but no active plan → plan manager (or editor for the first
+  // plan). PLAN_EDIT, PLANS, and SYNC are reachable without an active plan;
+  // everything else falls through to the empty-state CTA.
+  const planFlowViews = [VIEWS.PLAN_EDIT, VIEWS.PLANS, VIEWS.SYNC]
+  const showPlansFlow = !activePlan && !planFlowViews.includes(view)
   if (showPlansFlow) {
     return (
       <div className="min-h-screen bg-base">
@@ -138,7 +141,7 @@ function Shell() {
         )}
 
         {view === VIEWS.SYNC && (
-          <SyncSettings onBack={() => setView(activePlan ? VIEWS.PLANS : VIEWS.PLANS)} />
+          <SyncSettings onBack={() => setView(VIEWS.PLANS)} />
         )}
       </main>
 
