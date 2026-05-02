@@ -1,0 +1,141 @@
+// Section starting points used by the SectionPresetGallery and PlanWizard.
+// Each template exposes a list of exercise names that EXERCISE_LIBRARY can
+// inflate at insert time.
+
+export const SECTION_TEMPLATES = [
+  {
+    id: 'workout-a',
+    name: 'Workout A',
+    subtitle: 'Squat-focused · full body',
+    icon: '🅰️',
+    color: '#FF6A3D',
+    description: 'Whole-body session anchored on the squat',
+    exercises: [
+      'Back Squat',
+      'Bench Press',
+      'Barbell Row',
+      'Overhead Press',
+      'Plank',
+      'Calf Raise',
+    ],
+  },
+  {
+    id: 'workout-b',
+    name: 'Workout B',
+    subtitle: 'Deadlift-focused · full body',
+    icon: '🅱️',
+    color: '#6EA8FF',
+    description: 'Whole-body session anchored on the deadlift',
+    exercises: [
+      'Deadlift',
+      'Dumbbell Shoulder Press',
+      'Pull-up',
+      'Bulgarian Split Squat',
+      'Bicep Curl',
+      'Hanging Leg Raise',
+    ],
+  },
+  {
+    id: 'upper-body',
+    name: 'Upper Body',
+    subtitle: 'Push + pull together',
+    icon: '💪',
+    color: '#a78bfa',
+    description: 'Chest, back, shoulders, and arms in one session',
+    exercises: [
+      'Bench Press',
+      'Barbell Row',
+      'Overhead Press',
+      'Pull-up',
+      'Lateral Raise',
+      'Bicep Curl',
+      'Tricep Pushdown',
+    ],
+  },
+  {
+    id: 'lower-body',
+    name: 'Lower Body',
+    subtitle: 'Quads, hams, glutes, calves',
+    icon: '🦵',
+    color: '#34d399',
+    description: 'Full lower-body day from main lift to accessories',
+    exercises: [
+      'Back Squat',
+      'Romanian Deadlift',
+      'Leg Press',
+      'Bulgarian Split Squat',
+      'Leg Curl',
+      'Calf Raise',
+    ],
+  },
+  {
+    id: 'cardio',
+    name: 'Cardio',
+    subtitle: 'Steady or interval',
+    icon: '🏃',
+    color: '#38bdf8',
+    description: 'Optional conditioning day',
+    exercises: ['Treadmill', 'Elliptical', 'Stairmaster', 'Row Machine', 'Stationary Bike'],
+  },
+  {
+    id: 'group-class',
+    name: 'Group Class',
+    subtitle: 'Yoga, HIIT, Pilates',
+    icon: '🧘',
+    color: '#a78bfa',
+    description: 'Studio class day — bookings and group sessions',
+    exercises: ['Yoga Flow', 'HIIT Class', 'Pilates'],
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    subtitle: 'Build it yourself',
+    icon: '✏️',
+    color: '#8B93A1',
+    description: 'Empty section — pick exercises from the library',
+    exercises: [],
+  },
+]
+
+// Splits sit on top of section templates. Picking a split inflates into all
+// of its sessions. Cardio is intentionally outside any split — it composes
+// with any of them via a toggle in the wizard.
+export const SPLITS = [
+  {
+    id: 'full-body',
+    name: 'Full Body',
+    icon: '⚡',
+    color: '#FF6A3D',
+    sessionsLabel: '2 alternating sessions',
+    description: 'Both days train the whole body — alternate them across the week.',
+    bestFor: '2–3×/week · beginners · time-crunched',
+    sectionTemplateIds: ['workout-a', 'workout-b'],
+  },
+  {
+    id: 'upper-lower',
+    name: 'Upper / Lower',
+    icon: '🏋️',
+    color: '#a78bfa',
+    sessionsLabel: '2 sessions',
+    description: 'One upper-body day, one lower-body day. The classic 4×/week split.',
+    bestFor: '3–4×/week · most popular',
+    sectionTemplateIds: ['upper-body', 'lower-body'],
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    icon: '✏️',
+    color: '#8B93A1',
+    sessionsLabel: 'Build your own',
+    description: 'Start empty and add sections from the library yourself.',
+    bestFor: 'Power users · unconventional splits',
+    sectionTemplateIds: [],
+  },
+]
+
+export const TRAINING_GOALS = [
+  { id: 'strength',    label: 'Strength',    sub: 'Heavy, low reps · 5×5',   icon: '🏆' },
+  { id: 'hypertrophy', label: 'Hypertrophy', sub: 'Build muscle · 4×10',     icon: '💪' },
+  { id: 'endurance',   label: 'Endurance',   sub: 'Light, high reps · 3×15', icon: '🔥' },
+  { id: 'general',     label: 'General',     sub: 'Mixed defaults',          icon: '🎯' },
+]

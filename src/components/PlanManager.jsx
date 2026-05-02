@@ -4,12 +4,14 @@ import { useUser } from '../context/UserContext.jsx'
 import { buildPlanFromTemplate, buildBlankPlan, formatDateRange } from '../utils/storage.js'
 import { isSupabaseConfigured } from '../sync/supabaseClient.js'
 import { getSyncCode, formatSyncCode, subscribeSyncState, getSyncState } from '../sync/syncManager.js'
+import PlanWizard from './plan/PlanWizard.jsx'
 
 export default function PlanManager({ onBack, onEditPlan, onGoToSync }) {
   const { currentUserId } = useUser()
   const { plans, savePlan, deletePlan, activatePlan } = usePlan()
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [showCreateMenu, setShowCreateMenu] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
   const [syncState, setSyncState] = useState(() => getSyncState())
   const syncCode = getSyncCode()
   const syncConfigured = isSupabaseConfigured()
@@ -24,6 +26,18 @@ export default function PlanManager({ onBack, onEditPlan, onGoToSync }) {
     savePlan(plan)
     setShowCreateMenu(false)
     onEditPlan(plan.id)
+  }
+
+  if (wizardOpen) {
+    return (
+      <PlanWizard
+        onCancel={() => setWizardOpen(false)}
+        onCreated={(planId) => {
+          setWizardOpen(false)
+          onEditPlan?.(planId)
+        }}
+      />
+    )
   }
 
   return (
@@ -160,18 +174,33 @@ export default function PlanManager({ onBack, onEditPlan, onGoToSync }) {
       {showCreateMenu ? (
         <div className="card">
           <p className="label mb-3">Start from</p>
+          <button
+            onClick={() => { setShowCreateMenu(false); setWizardOpen(true) }}
+            className="w-full bg-primary-gradient border border-primary/40 rounded-xl p-4 text-left active:scale-[0.98] transition-all shadow-glow flex items-center gap-3 mb-3"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center text-2xl flex-shrink-0">
+              ✨
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-base text-white tracking-tightish">Quick start</p>
+              <p className="caption text-white/85 mt-0.5">3-step guided setup · ~30s</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </button>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => handleCreate('template')}
-              className="bg-primary-soft border border-primary/30 rounded-xl p-4 text-left active:scale-95 transition-all"
+              className="bg-surface-2 border border-border rounded-xl p-4 text-left active:scale-95 transition-all hover:border-border-strong"
             >
               <div className="text-2xl mb-2">📋</div>
               <p className="font-display font-bold text-sm text-text-primary tracking-tightish">Template</p>
-              <p className="caption mt-1">Pre-filled sections</p>
+              <p className="caption mt-1">Pre-filled defaults</p>
             </button>
             <button
               onClick={() => handleCreate('blank')}
-              className="bg-surface-3 border border-border rounded-xl p-4 text-left active:scale-95 transition-all hover:border-border-strong"
+              className="bg-surface-2 border border-border rounded-xl p-4 text-left active:scale-95 transition-all hover:border-border-strong"
             >
               <div className="text-2xl mb-2">✏️</div>
               <p className="font-display font-bold text-sm text-text-primary tracking-tightish">Blank</p>

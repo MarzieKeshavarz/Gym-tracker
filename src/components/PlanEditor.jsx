@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { usePlan } from '../context/PlanContext.jsx'
 import { genId } from '../utils/storage.js'
 import { SECTION_PRESETS } from '../data/defaultPlan.js'
+import ExercisePickerSheet from './plan/ExercisePickerSheet.jsx'
+import SectionPresetGallery from './plan/SectionPresetGallery.jsx'
 
 export default function PlanEditor({ planId, onBack }) {
   const { plans, savePlan } = usePlan()
@@ -11,6 +13,9 @@ export default function PlanEditor({ planId, onBack }) {
     initial ? JSON.parse(JSON.stringify(initial)) : null
   )
   const [expandedSection, setExpandedSection] = useState(initial?.sections[0]?.id || null)
+  const [pickingFor, setPickingFor] = useState(null)
+  const [sectionGalleryOpen, setSectionGalleryOpen] = useState(false)
+  const trainingGoal = draft?.trainingGoal || 'general'
 
   if (!draft) {
     return (
@@ -46,33 +51,20 @@ export default function PlanEditor({ planId, onBack }) {
     }))
   }
 
-  const addSection = () => {
-    const newSection = {
-      id: genId(),
-      name: 'New Section',
-      icon: SECTION_PRESETS.icons[draft.sections.length % SECTION_PRESETS.icons.length],
-      color: SECTION_PRESETS.colors[draft.sections.length % SECTION_PRESETS.colors.length],
-      exercises: [],
-    }
-    setDraft(d => ({ ...d, sections: [...d.sections, newSection] }))
-    setExpandedSection(newSection.id)
+  const addSectionFromPreset = (section) => {
+    setDraft(d => ({ ...d, sections: [...d.sections, section] }))
+    setExpandedSection(section.id)
   }
 
   const removeSection = (sectionId) => {
     setDraft(d => ({ ...d, sections: d.sections.filter(s => s.id !== sectionId) }))
   }
 
-  const addExercise = (sectionId) => {
+  const addExerciseFromPicker = (sectionId, exercise) => {
     setDraft(d => ({
       ...d,
       sections: d.sections.map(s =>
-        s.id !== sectionId ? s : {
-          ...s,
-          exercises: [
-            ...s.exercises,
-            { id: genId(), name: 'New Exercise', targetSets: 3, targetReps: 10 },
-          ],
-        }
+        s.id !== sectionId ? s : { ...s, exercises: [...s.exercises, exercise] }
       ),
     }))
   }
@@ -300,7 +292,7 @@ export default function PlanEditor({ planId, onBack }) {
               </div>
 
               <button
-                onClick={() => addExercise(section.id)}
+                onClick={() => setPickingFor(section.id)}
                 className="mt-3 w-full h-11 rounded-xl border border-dashed border-border-strong text-text-secondary text-sm font-body font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all hover:border-primary/40 hover:text-primary hover:bg-primary-soft"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -314,7 +306,7 @@ export default function PlanEditor({ planId, onBack }) {
       ))}
 
       <button
-        onClick={addSection}
+        onClick={() => setSectionGalleryOpen(true)}
         className="w-full h-14 rounded-2xl border border-dashed border-border-strong text-text-secondary font-display font-semibold text-sm tracking-tightish active:scale-[0.98] transition-all hover:border-primary/40 hover:text-primary hover:bg-primary-soft inline-flex items-center justify-center gap-2"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -322,6 +314,20 @@ export default function PlanEditor({ planId, onBack }) {
         </svg>
         Add section
       </button>
+
+      <ExercisePickerSheet
+        open={!!pickingFor}
+        onClose={() => setPickingFor(null)}
+        onPick={(ex) => addExerciseFromPicker(pickingFor, ex)}
+        trainingGoal={trainingGoal}
+      />
+
+      <SectionPresetGallery
+        open={sectionGalleryOpen}
+        onClose={() => setSectionGalleryOpen(false)}
+        onPick={addSectionFromPreset}
+        trainingGoal={trainingGoal}
+      />
 
       {/* Sticky save */}
       <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-bg via-bg/95 to-transparent pt-10 z-20">
