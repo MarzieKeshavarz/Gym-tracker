@@ -23,6 +23,7 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [startTime] = useState(() => new Date().toISOString())
   const [elapsed, setElapsed] = useState(0)
+  const [calorieInput, setCalorieInput] = useState('')
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -93,11 +94,16 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
       exercises: exerciseLogs,
     }
 
+    const calNum = Number(calorieInput)
+    if (calorieInput !== '' && Number.isFinite(calNum) && calNum > 0) {
+      log.sessionMetrics = { caloriesBurned: Math.round(calNum) }
+    }
+
     saveLog(log)
     setSaving(false)
     setSaved(true)
     setTimeout(() => onSaved(), 1000)
-  }, [section, exerciseSets, startTime, onSaved, currentUserId, activePlan])
+  }, [section, exerciseSets, startTime, onSaved, currentUserId, activePlan, calorieInput])
 
   if (saved) {
     return (
@@ -160,6 +166,20 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
           <p className="text-muted text-sm">This section has no exercises. Add some in the plan editor.</p>
         </div>
       )}
+
+      <div className="card">
+        <p className="label mb-2">🔥 Calories</p>
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          step="1"
+          value={calorieInput}
+          onChange={(e) => setCalorieInput(e.target.value)}
+          placeholder="Calories burned (optional)"
+          className="w-full bg-surface2 border border-border rounded-lg p-3 text-text text-sm font-body focus:outline-none focus:border-accent/50 transition-colors"
+        />
+      </div>
 
       <div className="card">
         <p className="label mb-2">Session Notes (optional)</p>

@@ -353,6 +353,72 @@ export function getDashboardStats(userId, planId) {
   }
 }
 
+// ─── Calorie / session-metric helpers ────────────────────────────────────────
+// Logs may carry an optional `sessionMetrics: { caloriesBurned, ... }`. Old
+// logs without this object behave as "no calories" for every helper below.
+
+function logCalories(log) {
+  const c = log?.sessionMetrics?.caloriesBurned
+  return typeof c === 'number' && c > 0 ? c : 0
+}
+
+export function hasAnyCalorieData(userId, planId) {
+  return getLogs(userId, planId).some(l => logCalories(l) > 0)
+}
+
+// Returns 7 entries [oldest … today], each { date: 'YYYY-MM-DD', label, calories }.
+export function getWeeklyCalories(userId, planId) {
+  const logs = getLogs(userId, planId)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const days = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    days.push({
+      date: key,
+      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      calories: 0,
+    })
+  }
+
+  const byDate = new Map(days.map(d => [d.date, d]))
+  for (const log of logs) {
+    const key = (log.date || '').slice(0, 10)
+    const bucket = byDate.get(key)
+    if (bucket) bucket.calories += logCalories(log)
+  }
+  return days
+}
+
+export function getCalorieStats(userId, planId) {
+  const logs = getLogs(userId, planId)
+  const week = getWeeklyCalories(userId, planId)
+  const weeklyTotal = week.reduce((sum, d) => sum + d.calories, 0)
+
+  const sessionsWithCals = logs.filter(l => logCalories(l) > 0)
+  const avgPerSession = sessionsWithCals.length
+    ? Math.round(sessionsWithCals.reduce((s, l) => s + logCalories(l), 0) / sessionsWithCals.length)
+    : 0
+
+  let highest = null
+  for (const l of sessionsWithCals) {
+    const c = logCalories(l)
+    if (!highest || c > highest.calories) {
+      highest = { calories: c, date: l.date, sectionName: l.sectionName }
+    }
+  }
+
+  return {
+    weeklyTotal,
+    avgPerSession,
+    highest,
+    weeklySeries: week,
+  }
+}
+
 // ─── Plan template helpers ───────────────────────────────────────────────────
 
 export function buildPlanFromTemplate(userId, name = 'My Plan') {

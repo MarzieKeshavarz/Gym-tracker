@@ -1,7 +1,11 @@
 import React, { useMemo } from 'react'
 import { useUser } from '../context/UserContext.jsx'
 import { usePlan } from '../context/PlanContext.jsx'
-import { getDashboardStats, getLogs, formatDate, formatTime, formatDateRange } from '../utils/storage.js'
+import {
+  getDashboardStats, getLogs, formatDate, formatTime, formatDateRange,
+  getCalorieStats,
+} from '../utils/storage.js'
+import WeeklyCalorieChart from './WeeklyCalorieChart.jsx'
 
 export default function Dashboard({
   onSelectSection,
@@ -38,6 +42,12 @@ export default function Dashboard({
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 5)
   }, [logs])
+
+  const calorieStats = useMemo(
+    () => activePlan ? getCalorieStats(currentUser?.id, activePlan.id) : null,
+    [currentUser, activePlan, logs]
+  )
+  const showCalories = !!calorieStats?.highest
 
   if (!activePlan) {
     // Should not be rendered without an active plan, but render a safe fallback.
@@ -102,6 +112,18 @@ export default function Dashboard({
         <StatCard value={stats.totalWorkouts} label="Total" />
         <StatCard value={stats.streak > 0 ? `${stats.streak}🔥` : '0'} label="Streak" />
       </div>
+
+      {/* Calorie analytics — only when at least one session has calories */}
+      {showCalories && (
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard value={calorieStats.weeklyTotal} label="Weekly kcal" accent />
+            <StatCard value={calorieStats.avgPerSession} label="Avg / Session" />
+            <StatCard value={calorieStats.highest.calories} label="Top Burn" />
+          </div>
+          <WeeklyCalorieChart data={calorieStats.weeklySeries} />
+        </div>
+      )}
 
       {/* Last workout */}
       {stats.lastWorkout && (
