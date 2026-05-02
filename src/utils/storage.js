@@ -43,6 +43,23 @@ function notifyChange() {
   if (changeListener) {
     try { changeListener() } catch { /* ignore */ }
   }
+  notifyDataChange('local')
+}
+
+// Data-change broadcast — fired on any local mutation AND after the sync
+// manager pulls a remote snapshot. React contexts subscribe to this to keep
+// every screen in sync without forcing a reload.
+const dataListeners = new Set()
+
+export function subscribeDataChange(fn) {
+  dataListeners.add(fn)
+  return () => dataListeners.delete(fn)
+}
+
+export function notifyDataChange(source = 'remote') {
+  for (const fn of dataListeners) {
+    try { fn(source) } catch { /* ignore */ }
+  }
 }
 
 // ─── Migration ───────────────────────────────────────────────────────────────
@@ -129,6 +146,25 @@ export function addUser({ name, avatar }) {
   writeJSON(USERS_KEY, users)
   notifyChange()
   return user
+}
+
+export function updateUser(userId, patch) {
+  const users = readJSON(USERS_KEY, [])
+  const idx = users.findIndex(u => u.id === userId)
+  if (idx === -1) return null
+  const cleanPatch = {}
+  if (typeof patch.name === 'string') cleanPatch.name = patch.name.trim() || users[idx].name
+  if (typeof patch.avatar === 'string' && patch.avatar) cleanPatch.avatar = patch.avatar
+  users[idx] = stamp({ ...users[idx], ...cleanPatch })
+  writeJSON(USERS_KEY, users)
+  notifyChange()
+  return users[idx]
+}
+
+export function getUserCascadeCounts(userId) {
+  const plans = readJSON(PLANS_KEY, []).filter(p => isLive(p) && p.userId === userId)
+  const logs  = readJSON(LOGS_KEY,  []).filter(l => isLive(l) && l.userId === userId)
+  return { plans: plans.length, logs: logs.length }
 }
 
 export function deleteUser(userId) {
@@ -263,6 +299,20 @@ export function saveLog(log) {
   notifyChange()
 }
 
+export function updateLog(log) {
+  if (!log?.id) return null
+  const logs = readJSON(LOGS_KEY, [])
+  const idx = logs.findIndex(l => l.id === log.id)
+  if (idx === -1) return null
+  // Preserve identity fields, drop tombstone if any (an edit revives the log).
+  const merged = stamp({ ...logs[idx], ...log, deletedAt: undefined })
+  delete merged.deletedAt
+  logs[idx] = merged
+  writeJSON(LOGS_KEY, logs)
+  notifyChange()
+  return merged
+}
+
 export function deleteLog(logId) {
   const now = Date.now()
   const logs = readJSON(LOGS_KEY, []).map(l =>
@@ -270,6 +320,18 @@ export function deleteLog(logId) {
   )
   writeJSON(LOGS_KEY, logs)
   notifyChange()
+}
+
+export function restoreLog(logId) {
+  const logs = readJSON(LOGS_KEY, [])
+  const idx = logs.findIndex(l => l.id === logId)
+  if (idx === -1) return null
+  const { deletedAt, ...rest } = logs[idx]
+  if (!deletedAt) return logs[idx]
+  logs[idx] = stamp(rest)
+  writeJSON(LOGS_KEY, logs)
+  notifyChange()
+  return logs[idx]
 }
 
 // ─── Last-workout / progress helpers (scoped) ───────────────────────────────

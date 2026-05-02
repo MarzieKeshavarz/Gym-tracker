@@ -5,11 +5,13 @@ import {
 } from 'recharts'
 import { useUser } from '../context/UserContext.jsx'
 import { usePlan } from '../context/PlanContext.jsx'
+import { useLogs } from '../context/LogContext.jsx'
 import { getExerciseHistory, formatDate } from '../utils/storage.js'
 
 export default function ProgressView({ onBack }) {
   const { currentUser } = useUser()
   const { activePlan } = usePlan()
+  const { version } = useLogs()
 
   const [selectedSectionId, setSelectedSectionId] = useState(activePlan?.sections[0]?.id)
   const [selectedExerciseId, setSelectedExerciseId] = useState(null)
@@ -38,7 +40,7 @@ export default function ProgressView({ onBack }) {
   const history = useMemo(() => {
     if (!exerciseId || !currentUser) return []
     return getExerciseHistory(currentUser.id, activePlan.id, exerciseId)
-  }, [exerciseId, currentUser, activePlan])
+  }, [exerciseId, currentUser, activePlan, version])
 
   const stats = useMemo(() => {
     if (!history.length) return null

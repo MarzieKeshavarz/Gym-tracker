@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { UserProvider, useUser } from './context/UserContext.jsx'
 import { PlanProvider, usePlan } from './context/PlanContext.jsx'
+import { LogProvider, useLogs } from './context/LogContext.jsx'
 import UserSelect from './components/UserSelect.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import WorkoutSection from './components/WorkoutSection.jsx'
@@ -8,6 +9,9 @@ import ProgressView from './components/ProgressView.jsx'
 import PlanManager from './components/PlanManager.jsx'
 import PlanEditor from './components/PlanEditor.jsx'
 import SyncSettings from './components/SyncSettings.jsx'
+import UserProfileSheet from './components/modals/UserProfileSheet.jsx'
+import SessionDetailSheet from './components/modals/SessionDetailSheet.jsx'
+import UndoToast from './components/UndoToast.jsx'
 import { startSync } from './sync/syncManager.js'
 
 const VIEWS = {
@@ -23,7 +27,9 @@ export default function App() {
   return (
     <UserProvider>
       <PlanProvider>
-        <Shell />
+        <LogProvider>
+          <Shell />
+        </LogProvider>
       </PlanProvider>
     </UserProvider>
   )
@@ -32,10 +38,18 @@ export default function App() {
 function Shell() {
   const { currentUser, clearCurrentUser } = useUser()
   const { activePlan, plans } = usePlan()
+  const { deleteLog, restoreLog } = useLogs()
 
   const [view, setView] = useState(VIEWS.DASHBOARD)
   const [selectedSection, setSelectedSection] = useState(null)
+  // When set, WorkoutSection runs in edit mode for this log.
+  const [editingLog, setEditingLog] = useState(null)
   const [editingPlanId, setEditingPlanId] = useState(null)
+
+  // Modals (overlay-state, separate from view routing)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [detailLog, setDetailLog] = useState(null)
+  const [undoLog, setUndoLog] = useState(null)
 
   useEffect(() => {
     startSync()
@@ -48,16 +62,22 @@ function Shell() {
   useEffect(() => {
     setView(VIEWS.DASHBOARD)
     setSelectedSection(null)
+    setEditingLog(null)
     setEditingPlanId(null)
+    setProfileOpen(false)
+    setDetailLog(null)
+    setUndoLog(null)
   }, [currentUser?.id])
 
   const goToDashboard = useCallback(() => {
     setView(VIEWS.DASHBOARD)
     setSelectedSection(null)
+    setEditingLog(null)
   }, [])
 
   const handleSelectSection = useCallback((section) => {
     setSelectedSection(section)
+    setEditingLog(null)
     setView(VIEWS.WORKOUT)
   }, [])
 
@@ -65,6 +85,35 @@ function Shell() {
     setEditingPlanId(planId)
     setView(VIEWS.PLAN_EDIT)
   }, [])
+
+  // Open the session-detail sheet (Dashboard recent / Progress history entry)
+  const handleSelectSession = useCallback((log) => {
+    setDetailLog(log)
+  }, [])
+
+  // Edit flow: routes into the existing WorkoutSection in edit mode, with the
+  // log's section preselected. If the section was removed from the plan, we
+  // bail out gracefully.
+  const handleEditSession = useCallback((log) => {
+    if (!activePlan) return
+    const section = activePlan.sections.find(s => s.id === log.sectionId)
+    if (!section) return
+    setSelectedSection(section)
+    setEditingLog(log)
+    setView(VIEWS.WORKOUT)
+  }, [activePlan])
+
+  // Optimistic delete + undo. The log tombstones immediately, snackbar shows
+  // for 5s. Undoing flips deletedAt back to undefined and re-syncs.
+  const handleDeleteSession = useCallback((log) => {
+    deleteLog(log.id)
+    setUndoLog(log)
+  }, [deleteLog])
+
+  const handleUndoDelete = useCallback((logId) => {
+    restoreLog(logId)
+    setUndoLog(null)
+  }, [restoreLog])
 
   if (!currentUser) {
     return (
@@ -85,9 +134,14 @@ function Shell() {
           <NoPlanScreen
             hasPlans={plans.length > 0}
             onManagePlans={() => setView(VIEWS.PLANS)}
-            onSwitchUser={clearCurrentUser}
+            onEditProfile={() => setProfileOpen(true)}
           />
         </main>
+        <UserProfileSheet
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+          onSwitchUser={clearCurrentUser}
+        />
       </div>
     )
   }
@@ -102,14 +156,16 @@ function Shell() {
             onSelectSection={handleSelectSection}
             onGoToProgress={() => setView(VIEWS.PROGRESS)}
             onGoToManagePlans={() => setView(VIEWS.PLANS)}
-            onSwitchUser={clearCurrentUser}
+            onEditProfile={() => setProfileOpen(true)}
+            onSelectSession={handleSelectSession}
           />
         )}
 
         {view === VIEWS.WORKOUT && selectedSection && (
           <WorkoutSection
-            key={selectedSection.id}
+            key={editingLog?.id || selectedSection.id}
             section={selectedSection}
+            editingLog={editingLog}
             onBack={goToDashboard}
             onSaved={goToDashboard}
           />
@@ -169,11 +225,33 @@ function Shell() {
           </div>
         </nav>
       )}
+
+      {/* Profile / session / undo overlays (live on top of every view) */}
+      <UserProfileSheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onSwitchUser={clearCurrentUser}
+      />
+
+      <SessionDetailSheet
+        open={!!detailLog}
+        log={detailLog}
+        onClose={() => setDetailLog(null)}
+        onEdit={handleEditSession}
+        onDelete={handleDeleteSession}
+      />
+
+      <UndoToast
+        id={undoLog?.id || null}
+        message="Session deleted"
+        onUndo={handleUndoDelete}
+        onDismiss={() => setUndoLog(null)}
+      />
     </div>
   )
 }
 
-function NoPlanScreen({ hasPlans, onManagePlans, onSwitchUser }) {
+function NoPlanScreen({ hasPlans, onManagePlans, onEditProfile }) {
   const { currentUser } = useUser()
   return (
     <div className="flex flex-col gap-6 slide-up pt-6 pb-8">
@@ -181,9 +259,9 @@ function NoPlanScreen({ hasPlans, onManagePlans, onSwitchUser }) {
         <div className="flex items-center gap-3">
           {currentUser && (
             <button
-              onClick={onSwitchUser}
+              onClick={onEditProfile}
               className="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-2 border border-border text-2xl active:scale-95 transition-all"
-              title="Switch profile"
+              title="Edit profile"
             >
               {currentUser.avatar}
             </button>

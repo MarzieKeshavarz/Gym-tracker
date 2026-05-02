@@ -4,6 +4,7 @@ import {
   getRawPlans, setRawPlans,
   getRawLogs, setRawLogs,
   registerChangeListener,
+  notifyDataChange,
 } from '../utils/storage.js'
 
 const SYNC_CODE_KEY = 'gymlog_sync_code'
@@ -164,6 +165,9 @@ export async function syncNow() {
 
       if (!snapshotEquals(merged, local)) {
         applySnapshot(merged)
+        // Local data was just rewritten from a remote pull — broadcast so
+        // React contexts can refresh without a tab reload.
+        notifyDataChange('remote')
       }
 
       // Push if cloud differs from merged (also covers first-time push when remote is null).

@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
 import { useUser } from '../context/UserContext.jsx'
 import { USER_AVATARS } from '../data/defaultPlan.js'
+import UserProfileSheet from './modals/UserProfileSheet.jsx'
 
 export default function UserSelect() {
-  const { users, createUser, removeUser, selectUser } = useUser()
+  const { users, createUser, selectUser } = useUser()
   const [creating, setCreating] = useState(users.length === 0)
   const [name, setName] = useState('')
   const [avatar, setAvatar] = useState(USER_AVATARS[0])
-  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [editingUser, setEditingUser] = useState(null)
 
   const handleCreate = (e) => {
     e?.preventDefault?.()
@@ -119,34 +120,17 @@ export default function UserSelect() {
               </div>
             </button>
 
-            {confirmDelete === u.id ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { removeUser(u.id); setConfirmDelete(null) }}
-                  className="btn-danger text-xs"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="text-text-secondary text-xs font-body bg-surface-2 border border-border px-3 h-10 rounded-lg active:scale-95"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(u.id)}
-                className="btn-icon flex-shrink-0"
-                title="Delete profile"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M3 6h18" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </button>
-            )}
+            <button
+              onClick={() => setEditingUser(u)}
+              className="btn-icon flex-shrink-0"
+              title="Edit profile"
+              aria-label={`Edit ${u.name}`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
           </div>
         ))}
       </div>
@@ -160,6 +144,12 @@ export default function UserSelect() {
         </svg>
         New profile
       </button>
+
+      <UserProfileSheet
+        open={!!editingUser}
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+      />
     </div>
   )
 }

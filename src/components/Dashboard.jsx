@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
 import { useUser } from '../context/UserContext.jsx'
 import { usePlan } from '../context/PlanContext.jsx'
+import { useLogs } from '../context/LogContext.jsx'
 import {
-  getDashboardStats, getLogs, formatDate, formatTime, formatDateRange,
+  getDashboardStats, formatDate, formatTime, formatDateRange,
   getCalorieStats,
 } from '../utils/storage.js'
 import { useCountUp } from '../utils/useCountUp.js'
@@ -13,17 +14,16 @@ export default function Dashboard({
   onGoToProgress,
   onGoToManagePlans,
   onSwitchUser,
+  onEditProfile,
+  onSelectSession,
 }) {
   const { currentUser } = useUser()
   const { activePlan } = usePlan()
+  const { logs, version } = useLogs()
 
   const stats = useMemo(
     () => activePlan ? getDashboardStats(currentUser?.id, activePlan.id) : null,
-    [currentUser, activePlan]
-  )
-  const logs = useMemo(
-    () => activePlan ? getLogs(currentUser?.id, activePlan.id) : [],
-    [currentUser, activePlan]
+    [currentUser, activePlan, version]
   )
 
   const lastPerSection = useMemo(() => {
@@ -46,7 +46,7 @@ export default function Dashboard({
 
   const calorieStats = useMemo(
     () => activePlan ? getCalorieStats(currentUser?.id, activePlan.id) : null,
-    [currentUser, activePlan, logs]
+    [currentUser, activePlan, version]
   )
   const showCalories = !!calorieStats?.highest
 
@@ -61,9 +61,9 @@ export default function Dashboard({
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {currentUser && (
             <button
-              onClick={onSwitchUser}
+              onClick={onEditProfile}
               className="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-2 border border-border text-2xl active:scale-95 transition-all flex-shrink-0 shadow-card"
-              title="Switch profile"
+              title="Edit profile"
             >
               {currentUser.avatar}
             </button>
@@ -197,8 +197,14 @@ export default function Dashboard({
           <div className="flex flex-col gap-2">
             {recentLogs.map(log => {
               const section = activePlan.sections.find(s => s.id === log.sectionId)
+              const wasEdited = log.updatedAt && log.date &&
+                log.updatedAt - new Date(log.date).getTime() > 60_000
               return (
-                <div key={log.id} className="card-flat flex items-center gap-3">
+                <button
+                  key={log.id}
+                  onClick={() => onSelectSession?.(log)}
+                  className="card-flat flex items-center gap-3 text-left active:scale-[0.99] transition-all hover:border-border-strong"
+                >
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
                     style={{
@@ -209,15 +215,18 @@ export default function Dashboard({
                     {section?.icon || '🏋️'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="body-md font-semibold truncate">
+                    <p className="body-md font-semibold truncate flex items-center gap-1.5">
                       {section?.name || log.sectionName || log.sectionId}
+                      {wasEdited && (
+                        <span className="caption text-text-tertiary normal-case">· edited</span>
+                      )}
                     </p>
                     <p className="caption tabular">
                       {formatDate(log.date)} · {log.exercises?.length || 0} exercises
                     </p>
                   </div>
                   <span className="caption tabular">{formatTime(log.date)}</span>
-                </div>
+                </button>
               )
             })}
           </div>

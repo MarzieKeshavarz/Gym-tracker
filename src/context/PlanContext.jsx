@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import {
   getPlans, savePlan as storageSavePlan, deletePlan as storageDeletePlan,
   activatePlan as storageActivatePlan,
+  subscribeDataChange,
 } from '../utils/storage.js'
 import { useUser } from './UserContext.jsx'
 
@@ -19,6 +20,9 @@ export function PlanProvider({ children }) {
   const refresh = useCallback(() => {
     setPlans(getPlans(currentUserId))
   }, [currentUserId])
+
+  // Pick up remote sync pulls and any cross-screen mutations.
+  useEffect(() => subscribeDataChange(refresh), [refresh])
 
   const activePlan = useMemo(
     () => plans.find(p => p.isActive) || null,
