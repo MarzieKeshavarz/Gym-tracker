@@ -14,8 +14,8 @@ export default function PlanEditor({ planId, onBack }) {
 
   if (!draft) {
     return (
-      <div className="flex flex-col gap-5 slide-up pt-4">
-        <p className="text-muted">Plan not found.</p>
+      <div className="flex flex-col gap-5 slide-up pt-5">
+        <p className="body-sm">Plan not found.</p>
         <button onClick={onBack} className="btn-ghost">‹ Back</button>
       </div>
     )
@@ -92,17 +92,19 @@ export default function PlanEditor({ planId, onBack }) {
   }
 
   return (
-    <div className="flex flex-col gap-5 slide-up pb-28">
-      <div className="flex items-center gap-4 pt-2">
+    <div className="flex flex-col gap-5 slide-up pt-5 pb-32">
+      <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface2 border border-border text-muted active:scale-95 transition-all flex-shrink-0"
+          className="btn-icon flex-shrink-0"
         >
-          ‹
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <path d="m15 6-6 6 6 6" />
+          </svg>
         </button>
-        <div>
-          <p className="label mb-0.5">Edit plan</p>
-          <h1 className="font-display font-black text-3xl uppercase tracking-tight text-text">
+        <div className="min-w-0">
+          <p className="caption">Edit plan</p>
+          <h1 className="font-display font-bold text-[28px] leading-[1.1] tracking-tighter2 text-text-primary truncate">
             {draft.name || 'Plan'}
           </h1>
         </div>
@@ -117,7 +119,7 @@ export default function PlanEditor({ planId, onBack }) {
             value={draft.name}
             onChange={e => updateField('name', e.target.value)}
             placeholder="e.g. Summer Cut"
-            className="input-field text-left"
+            className="input-text"
             maxLength={40}
           />
         </div>
@@ -128,7 +130,7 @@ export default function PlanEditor({ planId, onBack }) {
               type="date"
               value={draft.startDate || ''}
               onChange={e => updateField('startDate', e.target.value)}
-              className="input-field text-center"
+              className="input-field"
             />
           </div>
           <div>
@@ -137,7 +139,7 @@ export default function PlanEditor({ planId, onBack }) {
               type="date"
               value={draft.endDate || ''}
               onChange={e => updateField('endDate', e.target.value || null)}
-              className="input-field text-center"
+              className="input-field"
             />
           </div>
         </div>
@@ -150,18 +152,25 @@ export default function PlanEditor({ planId, onBack }) {
             className="w-full flex items-center gap-3 text-left"
             onClick={() => setExpandedSection(id => id === section.id ? null : section.id)}
           >
-            <span className="text-2xl">{section.icon}</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-display font-bold text-xl uppercase text-text truncate">{section.name}</p>
-              <p className="text-muted text-xs">{section.exercises.length} exercises</p>
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+              style={{
+                backgroundColor: hexToBg(section.color, 0.14),
+                border: `1px solid ${hexToBg(section.color, 0.3)}`,
+              }}
+            >
+              {section.icon}
             </div>
-            <span
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: section.color }}
-            />
-            <span className={`text-muted transition-transform ${expandedSection === section.id ? 'rotate-180' : ''}`}>
-              ▾
-            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-[16px] tracking-tightish text-text-primary truncate">{section.name}</p>
+              <p className="caption mt-0.5 tabular">{section.exercises.length} exercises</p>
+            </div>
+            <svg
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className={`w-5 h-5 text-text-tertiary transition-transform ${expandedSection === section.id ? 'rotate-180' : ''}`}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </button>
 
           {expandedSection === section.id && (
@@ -172,12 +181,12 @@ export default function PlanEditor({ planId, onBack }) {
                   value={section.name}
                   onChange={e => updateSection(section.id, { name: e.target.value })}
                   placeholder="Section name"
-                  className="input-field text-left"
+                  className="input-text"
                 />
                 <select
                   value={section.icon}
                   onChange={e => updateSection(section.id, { icon: e.target.value })}
-                  className="bg-surface2 border border-border rounded-lg px-2 text-text"
+                  className="bg-surface-3 border border-border rounded-xl px-2 h-12 text-text-primary text-base focus:outline-none focus:border-primary/50"
                 >
                   {SECTION_PRESETS.icons.map(i => (
                     <option key={i} value={i}>{i}</option>
@@ -185,34 +194,39 @@ export default function PlanEditor({ planId, onBack }) {
                 </select>
                 <button
                   onClick={() => removeSection(section.id)}
-                  className="w-10 h-10 flex items-center justify-center text-muted rounded-lg bg-surface2 border border-border active:scale-90 text-lg"
+                  className="btn-icon w-12 h-12"
                   title="Delete section"
                 >
-                  🗑
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
                 </button>
               </div>
 
               <p className="label mb-2">Exercises</p>
               <div className="flex flex-col gap-3">
                 {section.exercises.map(ex => (
-                  <div key={ex.id} className="bg-surface2 rounded-lg p-3 border border-border">
+                  <div key={ex.id} className="bg-surface-2 rounded-xl p-3 border border-border">
                     <div className="flex items-center gap-2 mb-3">
                       <input
                         type="text"
                         value={ex.name}
                         onChange={e => updateExercise(section.id, ex.id, 'name', e.target.value)}
-                        className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-text text-sm font-body focus:outline-none focus:border-accent/50 transition-colors"
+                        className="flex-1 bg-surface-3 border border-border rounded-lg px-3 h-11 text-[15px] font-body font-semibold focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                        style={{ color: '#F4F6FA' }}
                       />
                       <button
                         onClick={() => removeExercise(section.id, ex.id)}
-                        className="w-8 h-8 flex items-center justify-center text-muted rounded-lg bg-surface border border-border active:scale-90 text-lg"
+                        className="w-9 h-9 flex items-center justify-center text-text-secondary rounded-lg bg-surface border border-border active:scale-90 hover:text-danger hover:border-danger/30"
                       >
                         ×
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="label mb-1">Target Sets</p>
+                        <p className="label mb-1">Target sets</p>
                         <input
                           type="number"
                           value={ex.targetSets}
@@ -222,7 +236,7 @@ export default function PlanEditor({ planId, onBack }) {
                         />
                       </div>
                       <div>
-                        <p className="label mb-1">Target Reps</p>
+                        <p className="label mb-1">Target reps</p>
                         <input
                           type="number"
                           value={ex.targetReps}
@@ -238,9 +252,12 @@ export default function PlanEditor({ planId, onBack }) {
 
               <button
                 onClick={() => addExercise(section.id)}
-                className="mt-3 w-full py-2.5 rounded-lg border border-dashed border-border text-muted text-sm font-body flex items-center justify-center gap-2 active:scale-95 transition-all hover:border-accent/30 hover:text-accent/60"
+                className="mt-3 w-full h-11 rounded-xl border border-dashed border-border-strong text-text-secondary text-sm font-body font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-all hover:border-primary/40 hover:text-primary hover:bg-primary-soft"
               >
-                + Add Exercise
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add exercise
               </button>
             </div>
           )}
@@ -249,22 +266,38 @@ export default function PlanEditor({ planId, onBack }) {
 
       <button
         onClick={addSection}
-        className="w-full py-3 rounded-xl border-2 border-dashed border-border text-muted font-display font-bold uppercase tracking-widest active:scale-95 transition-all hover:border-accent/40 hover:text-accent"
+        className="w-full h-14 rounded-2xl border border-dashed border-border-strong text-text-secondary font-display font-semibold text-sm tracking-tightish active:scale-[0.98] transition-all hover:border-primary/40 hover:text-primary hover:bg-primary-soft inline-flex items-center justify-center gap-2"
       >
-        + Add Section
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add section
       </button>
 
       {/* Sticky save */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-base via-base/95 to-transparent pt-8">
+      <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-bg via-bg/95 to-transparent pt-10 z-20">
         <div className="max-w-lg mx-auto">
           <button
             onClick={handleSave}
-            className="btn-primary w-full py-4 text-xl"
+            className="w-full h-14 rounded-2xl bg-primary-gradient text-white font-display font-bold text-base tracking-tightish shadow-glow active:scale-[0.98] transition-all"
           >
-            Save Plan
+            Save plan
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+function hexToBg(hex, alpha = 0.12) {
+  if (!hex) return `rgba(110,168,255,${alpha})`
+  const m = hex.replace('#', '')
+  const v = m.length === 3
+    ? m.split('').map(c => c + c).join('')
+    : m
+  const r = parseInt(v.slice(0, 2), 16)
+  const g = parseInt(v.slice(2, 4), 16)
+  const b = parseInt(v.slice(4, 6), 16)
+  if ([r, g, b].some(n => Number.isNaN(n))) return `rgba(110,168,255,${alpha})`
+  return `rgba(${r},${g},${b},${alpha})`
 }

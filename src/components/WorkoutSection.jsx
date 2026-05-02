@@ -37,7 +37,6 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  // Last entries scoped to current user + active plan + this exercise
   const lastEntries = useMemo(() => {
     const map = {}
     if (!currentUserId || !activePlan) return map
@@ -57,6 +56,9 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
       return sets.some(s => s.weight !== '' || s.reps !== '')
     }).length
   }, [section.exercises, exerciseSets])
+
+  const totalCount = section.exercises.length
+  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
 
   const handleSave = useCallback(async () => {
     if (!currentUserId || !activePlan) return
@@ -100,50 +102,65 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
   }, [section, exerciseSets, startTime, onSaved, currentUserId, activePlan])
 
   if (saved) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 fade-in">
-        <div className="text-7xl">🎉</div>
-        <div className="text-center">
-          <p className="font-display font-black text-4xl uppercase text-accent">Saved!</p>
-          <p className="text-muted mt-2">Great work today</p>
-        </div>
-      </div>
-    )
+    return <SavedScreen />
   }
 
   return (
-    <div className="flex flex-col gap-5 slide-up pb-24">
-      <div className="flex items-start gap-4 pt-2">
+    <div className="flex flex-col gap-5 slide-up pt-5 pb-32">
+      {/* Header */}
+      <div className="flex items-start gap-3">
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface2 border border-border text-muted active:scale-95 transition-all flex-shrink-0 mt-1"
+          className="btn-icon flex-shrink-0 mt-0.5"
         >
-          ‹
+          <ChevronLeft />
         </button>
-        <div className="flex-1">
-          <p className="label mb-1">{section.icon} Workout</p>
-          <h1 className="font-display font-black text-4xl uppercase tracking-tight text-text leading-none">
+        <div className="flex-1 min-w-0">
+          <p className="caption mb-0.5">
+            <span className="mr-1">{section.icon}</span> Workout
+          </p>
+          <h1 className="font-display font-bold text-[30px] leading-[1.05] tracking-tighter2 text-text-primary">
             {section.name}
           </h1>
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-muted text-sm">⏱ {formatElapsed(elapsed)}</span>
-            <span className="text-muted text-xs">·</span>
-            <span className="text-muted text-sm">{completedCount}/{section.exercises.length} done</span>
-          </div>
         </div>
       </div>
 
-      <div className="h-1 bg-surface2 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${(completedCount / Math.max(section.exercises.length, 1)) * 100}%`,
-            backgroundColor: section.color,
-          }}
-        />
+      {/* Progress + timer card */}
+      <div className="card flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg bg-surface-3 border border-border flex items-center justify-center">
+              <ClockIcon />
+            </div>
+            <div>
+              <p className="caption">Elapsed</p>
+              <p className="font-display font-bold text-lg tabular tracking-tightish text-text-primary leading-none mt-0.5">
+                {formatElapsed(elapsed)}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="caption">Done</p>
+            <p className="font-display font-bold text-lg tabular tracking-tightish text-text-primary leading-none mt-0.5">
+              {completedCount}<span className="text-text-tertiary">/{totalCount}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="h-1.5 bg-surface-3 rounded-full overflow-hidden relative">
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out relative shine-sweep"
+            style={{
+              width: `${progress}%`,
+              background: `linear-gradient(90deg, ${section.color}cc, ${section.color})`,
+              boxShadow: `0 0 14px ${section.color}99`,
+            }}
+          />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      {/* Exercises */}
+      <div className="flex flex-col gap-3">
         {section.exercises.map((exercise) => (
           <ExerciseLogger
             key={exercise.id}
@@ -157,34 +174,104 @@ export default function WorkoutSection({ section, onBack, onSaved }) {
 
       {section.exercises.length === 0 && (
         <div className="card text-center py-8">
-          <p className="text-muted text-sm">This section has no exercises. Add some in the plan editor.</p>
+          <p className="body-sm">This section has no exercises. Add some in the plan editor.</p>
         </div>
       )}
 
+      {/* Notes */}
       <div className="card">
-        <p className="label mb-2">Session Notes (optional)</p>
+        <p className="label mb-2">Session notes</p>
         <textarea
           placeholder="How did it feel? Any PRs?"
-          className="w-full bg-surface2 border border-border rounded-lg p-3 text-text text-sm font-body resize-none focus:outline-none focus:border-accent/50 transition-colors"
+          className="w-full bg-surface-3 border border-border rounded-xl p-3 text-[15px] font-body font-medium resize-none focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-text-tertiary"
           rows={2}
+          style={{ color: '#F4F6FA' }}
         />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-base via-base/95 to-transparent pt-8">
+      {/* Sticky save */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-bg via-bg/95 to-transparent pt-10 z-20">
         <div className="max-w-lg mx-auto">
           <button
             onClick={handleSave}
             disabled={saving || completedCount === 0}
-            className={`w-full py-4 rounded-xl font-display font-black text-xl uppercase tracking-widest transition-all active:scale-95 ${
+            className={`w-full h-14 rounded-2xl font-display font-bold text-base tracking-tightish transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 relative overflow-hidden ${
               completedCount > 0
-                ? 'bg-accent text-base accent-glow'
-                : 'bg-surface2 text-muted border border-border cursor-not-allowed'
+                ? 'bg-primary-gradient text-white shadow-glow shine-sweep'
+                : 'bg-surface-2 text-text-tertiary border border-border cursor-not-allowed'
             }`}
           >
-            {saving ? 'Saving…' : `Save Workout · ${completedCount} Exercises`}
+            {saving ? (
+              <>Saving<DotsIcon /></>
+            ) : completedCount === 0 ? (
+              'Log a set to save'
+            ) : (
+              <>Save Workout · <span className="tabular">{completedCount}</span> {completedCount === 1 ? 'exercise' : 'exercises'}</>
+            )}
           </button>
         </div>
       </div>
     </div>
   )
+}
+
+function SavedScreen() {
+  const colors = ['#FF6A3D', '#FFB388', '#6EA8FF', '#34D399', '#F5B544']
+  const pieces = Array.from({ length: 18 }).map((_, i) => {
+    const angle = (i / 18) * Math.PI * 2
+    const dist = 90 + Math.random() * 70
+    const cx = Math.cos(angle) * dist
+    const cy = Math.sin(angle) * dist
+    const cr = (Math.random() - 0.5) * 540
+    return {
+      key: i,
+      style: {
+        '--cx': `${cx}px`,
+        '--cy': `${cy}px`,
+        '--cr': `${cr}deg`,
+        backgroundColor: colors[i % colors.length],
+        animationDelay: `${Math.random() * 0.15}s`,
+      },
+    }
+  })
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6 fade-in">
+      <div className="relative">
+        {pieces.map(p => (
+          <span key={p.key} className="confetti-piece" style={p.style} />
+        ))}
+        <div className="w-28 h-28 rounded-full bg-primary-gradient flex items-center justify-center primary-glow burst relative">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="w-14 h-14">
+            <path className="check-draw" d="M5 12.5 10 17.5 19 7.5" />
+          </svg>
+        </div>
+      </div>
+      <div className="text-center fade-in" style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
+        <p className="font-display font-bold text-[34px] tracking-tighter2 gradient-text">Saved!</p>
+        <p className="body-sm mt-2">Great work today 💪</p>
+      </div>
+    </div>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-text-secondary">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  )
+}
+
+function ChevronLeft() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="m15 6-6 6 6 6" />
+    </svg>
+  )
+}
+
+function DotsIcon() {
+  return <span className="ml-0.5 inline-block animate-pulse">…</span>
 }

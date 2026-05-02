@@ -10,7 +10,7 @@ import { usePlan } from '../context/PlanContext.jsx'
 export default function SyncSettings({ onBack }) {
   const [code, setCodeState] = useState(() => getSyncCode())
   const [draft, setDraft] = useState('')
-  const [mode, setMode] = useState(code ? 'view' : 'idle') // 'idle' | 'enter' | 'view'
+  const [mode, setMode] = useState(code ? 'view' : 'idle')
   const [syncState, setSyncState] = useState(() => getSyncState())
   const [confirmDisable, setConfirmDisable] = useState(false)
   const { refreshUsers } = useUser()
@@ -30,9 +30,7 @@ export default function SyncSettings({ onBack }) {
     })
   }
 
-  const handleGenerate = () => {
-    apply(generateSyncCode())
-  }
+  const handleGenerate = () => apply(generateSyncCode())
 
   const handleEnter = () => {
     const norm = normalizeSyncCode(draft)
@@ -56,39 +54,41 @@ export default function SyncSettings({ onBack }) {
   }
 
   return (
-    <div className="flex flex-col gap-5 slide-up pb-8">
-      <div className="flex items-center gap-4 pt-2">
+    <div className="flex flex-col gap-5 slide-up pt-5 pb-8">
+      <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface2 border border-border text-muted active:scale-95 transition-all flex-shrink-0"
+          className="btn-icon flex-shrink-0"
         >
-          ‹
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <path d="m15 6-6 6 6 6" />
+          </svg>
         </button>
         <div>
-          <p className="label mb-0.5">Cross-device sync</p>
-          <h1 className="font-display font-black text-3xl uppercase tracking-tight text-text">
+          <p className="caption">Cross-device sync</p>
+          <h1 className="font-display font-bold text-[28px] leading-[1.1] tracking-tighter2 text-text-primary">
             Sync
           </h1>
         </div>
       </div>
 
       {!configured && (
-        <div className="card border-amber-700/40 bg-amber-900/10">
-          <p className="font-body font-semibold text-amber-200 mb-1">Sync not configured</p>
-          <p className="text-muted text-xs">
-            Supabase env vars are missing. See <span className="text-text font-mono">SETUP.md</span> for the setup steps.
+        <div className="card border-warning/30 bg-warning/10">
+          <p className="font-body font-semibold text-warning mb-1">Sync not configured</p>
+          <p className="body-sm">
+            Supabase env vars are missing. See <span className="text-text-primary font-mono">SETUP.md</span> for setup steps.
           </p>
         </div>
       )}
 
       {configured && code && mode === 'view' && (
         <>
-          <div className="card">
-            <p className="label mb-2">Your sync code</p>
-            <p className="font-display font-black text-4xl uppercase tracking-widest text-accent text-center my-3">
+          <div className="card text-center">
+            <p className="label mb-3">Your sync code</p>
+            <p className="font-display font-bold text-[32px] tracking-[0.18em] text-primary tabular my-2">
               {formatSyncCode(code)}
             </p>
-            <p className="text-muted text-xs text-center">
+            <p className="body-sm mt-1">
               Enter this code on your other device to share your data.
             </p>
           </div>
@@ -98,28 +98,27 @@ export default function SyncSettings({ onBack }) {
           <button
             onClick={handleManualSync}
             disabled={syncState.status === 'syncing'}
-            className="btn-ghost w-full text-sm"
+            className="btn-ghost w-full"
           >
             {syncState.status === 'syncing' ? 'Syncing…' : '↻ Sync now'}
           </button>
 
-          <div className="card border-red-900/40">
-            <p className="font-body font-semibold text-text mb-1">Disable sync</p>
-            <p className="text-muted text-xs mb-3">
-              Removes the sync code from this device. Your data stays here, but stops mirroring to the cloud.
-              The cloud copy is not deleted.
+          <div className="card border-danger/25">
+            <p className="font-display font-semibold text-base text-text-primary mb-1">Disable sync</p>
+            <p className="body-sm mb-3">
+              Removes the sync code from this device. Your data stays here, but stops mirroring to the cloud. The cloud copy is not deleted.
             </p>
             {confirmDisable ? (
-              <div className="flex gap-3">
+              <div className="flex gap-2.5">
                 <button
                   onClick={handleDisable}
-                  className="flex-1 text-red-400 text-sm font-body font-medium bg-red-900/20 border border-red-900/40 px-4 py-2.5 rounded-lg active:scale-95 transition-all"
+                  className="flex-1 btn-danger"
                 >
                   Yes, disable
                 </button>
                 <button
                   onClick={() => setConfirmDisable(false)}
-                  className="flex-1 btn-ghost text-sm"
+                  className="flex-1 btn-ghost"
                 >
                   Cancel
                 </button>
@@ -127,7 +126,7 @@ export default function SyncSettings({ onBack }) {
             ) : (
               <button
                 onClick={() => setConfirmDisable(true)}
-                className="text-red-400 text-sm font-body font-medium bg-red-900/20 border border-red-900/40 px-4 py-2 rounded-lg active:scale-95"
+                className="btn-danger"
               >
                 Disable sync
               </button>
@@ -139,8 +138,8 @@ export default function SyncSettings({ onBack }) {
       {configured && !code && mode === 'idle' && (
         <>
           <div className="card">
-            <p className="font-display font-bold text-xl uppercase text-text mb-1">Sync your data</p>
-            <p className="text-muted text-sm">
+            <p className="font-display font-bold text-lg tracking-tightish text-text-primary mb-1.5">Sync your data</p>
+            <p className="body-sm">
               Use the same sync code on every device — your users, plans, and workout logs are
               kept in sync across all of them.
             </p>
@@ -148,9 +147,9 @@ export default function SyncSettings({ onBack }) {
 
           <button
             onClick={handleGenerate}
-            className="btn-primary w-full py-4 text-lg"
+            className="btn-primary w-full h-14 text-base"
           >
-            Generate New Code
+            Generate new code
           </button>
 
           <button
@@ -171,20 +170,20 @@ export default function SyncSettings({ onBack }) {
             value={draft}
             onChange={e => setDraft(e.target.value)}
             placeholder="ABCD-1234"
-            className="input-field text-center text-2xl font-display font-bold uppercase tracking-widest"
+            className="input-field text-2xl font-display font-bold tracking-[0.18em] uppercase"
             maxLength={9}
           />
-          <p className="text-muted text-xs mt-2">
-            8 letters/numbers. Find it in <span className="text-text">Sync</span> on your other device.
+          <p className="caption mt-2">
+            8 letters/numbers. Find it in <span className="text-text-primary">Sync</span> on your other device.
           </p>
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-2.5 mt-4">
             <button
               onClick={handleEnter}
               disabled={normalizeSyncCode(draft).length < 4}
-              className={`flex-1 py-3 rounded-lg font-display font-bold uppercase tracking-wide ${
+              className={`flex-1 h-12 rounded-xl font-display font-bold text-sm tracking-tightish transition-all active:scale-[0.98] ${
                 normalizeSyncCode(draft).length >= 4
-                  ? 'bg-accent text-base'
-                  : 'bg-surface2 text-muted border border-border'
+                  ? 'bg-primary-gradient text-white shadow-glow'
+                  : 'bg-surface-2 text-text-tertiary border border-border cursor-not-allowed'
               }`}
             >
               Connect
@@ -204,12 +203,12 @@ export default function SyncSettings({ onBack }) {
 
 function SyncStatus({ state }) {
   const meta = {
-    idle:     { text: 'Idle',           color: 'text-muted',  dot: 'bg-muted' },
-    syncing:  { text: 'Syncing…',       color: 'text-text',   dot: 'bg-accent animate-pulse' },
-    ok:       { text: 'Synced',         color: 'text-accent', dot: 'bg-accent' },
-    error:    { text: 'Sync error',     color: 'text-red-400', dot: 'bg-red-400' },
-    disabled: { text: 'Disabled',       color: 'text-muted',  dot: 'bg-muted' },
-  }[state.status] || { text: state.status, color: 'text-muted', dot: 'bg-muted' }
+    idle:     { text: 'Idle',       color: 'text-text-secondary', dot: 'bg-text-tertiary' },
+    syncing:  { text: 'Syncing…',   color: 'text-text-primary',   dot: 'bg-primary animate-pulse' },
+    ok:       { text: 'Synced',     color: 'text-success',        dot: 'bg-success' },
+    error:    { text: 'Sync error', color: 'text-danger',         dot: 'bg-danger' },
+    disabled: { text: 'Disabled',   color: 'text-text-secondary', dot: 'bg-text-tertiary' },
+  }[state.status] || { text: state.status, color: 'text-text-secondary', dot: 'bg-text-tertiary' }
 
   return (
     <div className="card flex items-center gap-3">
@@ -217,12 +216,12 @@ function SyncStatus({ state }) {
       <div className="flex-1 min-w-0">
         <p className={`font-body font-semibold text-sm ${meta.color}`}>{meta.text}</p>
         {state.lastSyncedAt && (
-          <p className="text-muted text-xs">
-            Last sync: {new Date(state.lastSyncedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          <p className="caption tabular">
+            Last sync · {new Date(state.lastSyncedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </p>
         )}
         {state.error && (
-          <p className="text-red-400 text-xs truncate" title={state.error}>{state.error}</p>
+          <p className="text-danger text-xs truncate" title={state.error}>{state.error}</p>
         )}
       </div>
     </div>

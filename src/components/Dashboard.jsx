@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { useUser } from '../context/UserContext.jsx'
 import { usePlan } from '../context/PlanContext.jsx'
 import { getDashboardStats, getLogs, formatDate, formatTime, formatDateRange } from '../utils/storage.js'
+import { useCountUp } from '../utils/useCountUp.js'
 
 export default function Dashboard({
   onSelectSection,
@@ -39,78 +40,86 @@ export default function Dashboard({
       .slice(0, 5)
   }, [logs])
 
-  if (!activePlan) {
-    // Should not be rendered without an active plan, but render a safe fallback.
-    return null
-  }
+  if (!activePlan) return null
+
+  const greeting = getGreeting()
 
   return (
-    <div className="flex flex-col gap-6 slide-up">
+    <div className="flex flex-col gap-6 slide-up pt-5">
       {/* Header */}
-      <div className="flex items-start justify-between pt-2 gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           {currentUser && (
             <button
               onClick={onSwitchUser}
-              className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface2 border border-border text-2xl active:scale-95 transition-all flex-shrink-0"
+              className="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-2 border border-border text-2xl active:scale-95 transition-all flex-shrink-0 shadow-card"
               title="Switch profile"
             >
               {currentUser.avatar}
             </button>
           )}
           <div className="min-w-0">
-            <p className="label mb-1 truncate">
-              {currentUser ? `Hi, ${currentUser.name}` : 'Welcome back'}
+            <p className="caption truncate">
+              {greeting}{currentUser ? `, ${currentUser.name}` : ''}
             </p>
-            <h1 className="font-display font-black text-4xl uppercase tracking-tight text-text leading-none">
-              Gym<span className="text-accent">Log</span>
+            <h1 className="page-title">
+              Gym<span className="gradient-text">Log</span>
             </h1>
           </div>
         </div>
         <button
           onClick={onGoToManagePlans}
-          className="mt-1 w-10 h-10 flex items-center justify-center rounded-lg bg-surface2 border border-border text-muted active:scale-95 transition-all flex-shrink-0"
+          className="btn-icon flex-shrink-0 mt-1"
           title="Manage plans"
         >
-          <span className="text-lg">⚙️</span>
+          <SettingsIcon />
         </button>
       </div>
 
       {/* Active plan banner */}
       <button
         onClick={onGoToManagePlans}
-        className="card flex items-center gap-3 active:scale-[0.99] transition-all text-left"
+        className="card lift press-pop flex items-center gap-3 text-left overflow-hidden"
       >
-        <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0">
-          <span className="text-base">📋</span>
+        <div className="w-11 h-11 rounded-xl bg-primary-soft border border-primary/25 flex items-center justify-center flex-shrink-0">
+          <BookIcon />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="label">Active plan</p>
-          <p className="text-text font-display font-bold text-lg uppercase tracking-wide truncate">
+          <div className="flex items-center gap-2">
+            <p className="caption">Active plan</p>
+            <span className="active-dot" />
+          </div>
+          <p className="font-display font-bold text-[17px] tracking-tightish text-text-primary truncate mt-0.5">
             {activePlan.name}
           </p>
-          <p className="text-muted text-xs mt-0.5">
+          <p className="caption mt-0.5">
             {formatDateRange(activePlan.startDate, activePlan.endDate)}
           </p>
         </div>
-        <span className="text-muted text-lg flex-shrink-0">›</span>
+        <ChevronRight className="text-text-tertiary flex-shrink-0" />
       </button>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard value={stats.thisWeek} label="This Week" accent />
+        <StatCard value={stats.thisWeek} label="This Week" highlight />
         <StatCard value={stats.totalWorkouts} label="Total" />
-        <StatCard value={stats.streak > 0 ? `${stats.streak}🔥` : '0'} label="Streak" />
+        <StatCard
+          value={stats.streak > 0 ? stats.streak : 0}
+          suffix={stats.streak > 0 ? <span className="flame">🔥</span> : null}
+          label="Streak"
+        />
       </div>
 
       {/* Last workout */}
       {stats.lastWorkout && (
         <div className="card flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-sm">📅</div>
-          <div>
-            <p className="label">Last session</p>
-            <p className="text-text font-body font-medium">
-              {formatDate(stats.lastWorkout)} · {formatTime(stats.lastWorkout)}
+          <div className="w-10 h-10 rounded-xl bg-surface-3 border border-border flex items-center justify-center flex-shrink-0">
+            <ClockIcon />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="caption">Last session</p>
+            <p className="body-md font-semibold tabular">
+              {formatDate(stats.lastWorkout)} <span className="text-text-tertiary">·</span> {formatTime(stats.lastWorkout)}
             </p>
           </div>
         </div>
@@ -118,15 +127,20 @@ export default function Dashboard({
 
       {/* Sections */}
       <div>
-        <p className="label mb-3">Start Workout</p>
+        <div className="flex items-center justify-between mb-3 px-0.5">
+          <p className="label">Start workout</p>
+          <p className="caption">{activePlan.sections.length} sections</p>
+        </div>
         {activePlan.sections.length === 0 ? (
-          <div className="card text-center py-8">
-            <p className="text-3xl mb-2">📝</p>
-            <p className="text-text font-body font-medium">No sections in this plan</p>
-            <p className="text-muted text-sm mt-1">Edit the plan to add sections and exercises</p>
+          <div className="card text-center py-10">
+            <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-surface-3 border border-border flex items-center justify-center text-2xl">
+              📝
+            </div>
+            <p className="font-display font-semibold text-base text-text-primary">No sections in this plan</p>
+            <p className="body-sm mt-1">Edit the plan to add sections and exercises</p>
             <button
               onClick={onGoToManagePlans}
-              className="btn-primary mt-4 px-5 py-2 text-sm"
+              className="btn-primary mt-5"
             >
               Edit Plan
             </button>
@@ -149,11 +163,11 @@ export default function Dashboard({
       {/* Recent activity */}
       {recentLogs.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="label">Recent Sessions</p>
+          <div className="flex items-center justify-between mb-3 px-0.5">
+            <p className="label">Recent sessions</p>
             <button
               onClick={onGoToProgress}
-              className="text-accent text-xs font-body font-medium uppercase tracking-wider"
+              className="text-primary text-xs font-body font-semibold uppercase tracking-label active:scale-95 transition-all"
             >
               Progress →
             </button>
@@ -162,17 +176,25 @@ export default function Dashboard({
             {recentLogs.map(log => {
               const section = activePlan.sections.find(s => s.id === log.sectionId)
               return (
-                <div key={log.id} className="card flex items-center gap-3 py-3">
-                  <span className="text-xl">{section?.icon || '🏋️'}</span>
+                <div key={log.id} className="card-flat flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                    style={{
+                      backgroundColor: hexToBg(section?.color || '#6EA8FF'),
+                      border: `1px solid ${hexToBg(section?.color || '#6EA8FF', 0.25)}`,
+                    }}
+                  >
+                    {section?.icon || '🏋️'}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-text font-body font-medium text-sm truncate">
+                    <p className="body-md font-semibold truncate">
                       {section?.name || log.sectionName || log.sectionId}
                     </p>
-                    <p className="text-muted text-xs">
+                    <p className="caption tabular">
                       {formatDate(log.date)} · {log.exercises?.length || 0} exercises
                     </p>
                   </div>
-                  <span className="text-muted text-xs">{formatTime(log.date)}</span>
+                  <span className="caption tabular">{formatTime(log.date)}</span>
                 </div>
               )
             })}
@@ -182,50 +204,124 @@ export default function Dashboard({
 
       {recentLogs.length === 0 && activePlan.sections.length > 0 && (
         <div className="card text-center py-10">
-          <p className="text-4xl mb-3">🏋️</p>
-          <p className="text-text font-display font-bold text-xl uppercase">Ready to lift?</p>
-          <p className="text-muted text-sm mt-1">Tap a section above to get started</p>
+          <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-primary-soft border border-primary/20 flex items-center justify-center text-3xl">
+            🏋️
+          </div>
+          <p className="section-title">Ready to lift?</p>
+          <p className="body-sm mt-1.5">Tap a section above to get started</p>
         </div>
       )}
     </div>
   )
 }
 
-function StatCard({ value, label, accent }) {
+/* ── Sub-components ────────────────────────────────────────────────────── */
+
+function StatCard({ value, suffix, label, highlight }) {
+  const display = useCountUp(typeof value === 'number' ? value : 0)
+  const shown = typeof value === 'number' ? display : value
   return (
-    <div className={`card text-center py-4 ${accent ? 'border-accent/30 bg-accent/5' : ''}`}>
-      <p className={`font-display font-black text-3xl ${accent ? 'text-accent' : 'text-text'}`}>
-        {value}
+    <div
+      className={`card lift text-center py-4 px-2 overflow-hidden ${
+        highlight ? 'border-primary/30 bg-primary-soft shine-sweep' : ''
+      }`}
+    >
+      <p className={`stat-value ${highlight ? 'text-primary' : 'text-text-primary'}`}>
+        {shown}{suffix && <span className="ml-1 text-2xl align-middle">{suffix}</span>}
       </p>
-      <p className="label mt-1">{label}</p>
+      <p className="label mt-1.5">{label}</p>
     </div>
   )
 }
 
 function SectionCard({ section, lastLog, onClick, index }) {
-  const delay = `${index * 50}ms`
-
+  const delay = `${index * 60}ms`
   return (
     <button
       onClick={onClick}
-      className="card text-left flex items-center gap-4 active:scale-[0.98] transition-all w-full"
+      className="card lift press-pop text-left flex items-center gap-3 w-full slide-up group"
       style={{ animationDelay: delay }}
     >
       <div
-        className="w-1 self-stretch rounded-full flex-shrink-0"
-        style={{ backgroundColor: section.color }}
-      />
-      <span className="text-3xl">{section.icon}</span>
+        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] group-active:scale-105"
+        style={{
+          backgroundColor: hexToBg(section.color, 0.14),
+          border: `1px solid ${hexToBg(section.color, 0.3)}`,
+          boxShadow: `0 0 24px -10px ${hexToBg(section.color, 0.6)}`,
+        }}
+      >
+        {section.icon}
+      </div>
       <div className="flex-1 min-w-0">
-        <p className="font-display font-bold text-xl uppercase text-text tracking-wide">
+        <p className="font-display font-bold text-[17px] tracking-tightish text-text-primary truncate">
           {section.name}
         </p>
-        <p className="text-muted text-xs mt-0.5">
+        <p className="caption mt-0.5 tabular">
           {section.exercises.length} exercises
-          {lastLog && ` · Last: ${formatDate(lastLog.date)}`}
+          {lastLog && ` · Last ${formatDate(lastLog.date)}`}
         </p>
       </div>
-      <span className="text-muted text-lg flex-shrink-0">›</span>
+      <ChevronRight className="text-text-tertiary flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
     </button>
   )
+}
+
+/* ── Icons ─────────────────────────────────────────────────────────────── */
+
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  )
+}
+
+function BookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-primary">
+      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5a2.5 2.5 0 0 0 0 5H20" />
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-text-secondary">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  )
+}
+
+function ChevronRight({ className = '' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-5 h-5 ${className}`}>
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  )
+}
+
+/* ── Helpers ───────────────────────────────────────────────────────────── */
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 5) return 'Late night'
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  if (h < 21) return 'Good evening'
+  return 'Good night'
+}
+
+function hexToBg(hex, alpha = 0.12) {
+  if (!hex) return `rgba(110,168,255,${alpha})`
+  const m = hex.replace('#', '')
+  const v = m.length === 3
+    ? m.split('').map(c => c + c).join('')
+    : m
+  const r = parseInt(v.slice(0, 2), 16)
+  const g = parseInt(v.slice(2, 4), 16)
+  const b = parseInt(v.slice(4, 6), 16)
+  if ([r, g, b].some(n => Number.isNaN(n))) return `rgba(110,168,255,${alpha})`
+  return `rgba(${r},${g},${b},${alpha})`
 }
