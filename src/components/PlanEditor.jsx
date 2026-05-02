@@ -145,6 +145,55 @@ export default function PlanEditor({ planId, onBack }) {
         </div>
       </div>
 
+      {/* Wellness — daily step target (independent of workout sections) */}
+      <div className="card flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">👣</span>
+          <p className="label">Daily step target</p>
+        </div>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={draft.dailyStepTarget ?? ''}
+            onChange={e => {
+              const v = e.target.value
+              updateField('dailyStepTarget', v === '' ? null : Math.max(0, Math.round(Number(v))))
+            }}
+            placeholder="e.g. 8500"
+            min="0"
+            step="500"
+            className="input-field"
+          />
+          <button
+            type="button"
+            onClick={() => updateField('dailyStepTarget', null)}
+            className="btn-ghost px-4"
+            title="Disable step goal"
+          >
+            Off
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[7000, 8500, 10000, 12000].map(preset => {
+            const active = draft.dailyStepTarget === preset
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => updateField('dailyStepTarget', preset)}
+                className={active ? 'chip-accent' : 'chip'}
+              >
+                {preset.toLocaleString()}
+              </button>
+            )
+          })}
+        </div>
+        <p className="caption">
+          Optional wellness goal. Leave empty to hide step tracking.
+        </p>
+      </div>
+
       {/* Sections */}
       {draft.sections.map(section => (
         <div key={section.id} className="card">

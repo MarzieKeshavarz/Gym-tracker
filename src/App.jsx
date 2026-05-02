@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { UserProvider, useUser } from './context/UserContext.jsx'
 import { PlanProvider, usePlan } from './context/PlanContext.jsx'
 import { LogProvider, useLogs } from './context/LogContext.jsx'
+import { StepProvider } from './context/StepContext.jsx'
 import UserSelect from './components/UserSelect.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import WorkoutSection from './components/WorkoutSection.jsx'
@@ -28,7 +29,9 @@ export default function App() {
     <UserProvider>
       <PlanProvider>
         <LogProvider>
-          <Shell />
+          <StepProvider>
+            <Shell />
+          </StepProvider>
         </LogProvider>
       </PlanProvider>
     </UserProvider>

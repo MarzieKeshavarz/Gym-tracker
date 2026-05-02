@@ -7,6 +7,10 @@ import { useUser } from '../context/UserContext.jsx'
 import { usePlan } from '../context/PlanContext.jsx'
 import { useLogs } from '../context/LogContext.jsx'
 import { getExerciseHistory, formatDate } from '../utils/storage.js'
+import { useStepProgress } from '../hooks/useStepProgress.js'
+import StepStatsRow from './steps/StepStatsRow.jsx'
+import WeeklyStepChart from './steps/WeeklyStepChart.jsx'
+import StepHistoryList from './steps/StepHistoryList.jsx'
 
 export default function ProgressView({ onBack }) {
   const { currentUser } = useUser()
@@ -250,6 +254,32 @@ export default function ProgressView({ onBack }) {
           <p className="body-sm mt-1">Log a workout to see progress</p>
         </div>
       )}
+
+      <StepsSection />
+    </div>
+  )
+}
+
+function StepsSection() {
+  const { stats, weekly, history, hasTarget, target } = useStepProgress()
+  if (!hasTarget && !stats.hasAnyLogs) return null
+
+  return (
+    <div className="flex flex-col gap-3 pt-2">
+      <div className="flex items-center justify-between">
+        <p className="label">👣 Steps</p>
+        {hasTarget && (
+          <span className="caption tabular">
+            {stats.weeklyCompletionRate}% goal hit this week
+          </span>
+        )}
+      </div>
+      <StepStatsRow stats={stats} />
+      <WeeklyStepChart data={weekly} target={target || 0} />
+      <div className="flex flex-col gap-2 pt-1">
+        <p className="label">Step history</p>
+        <StepHistoryList history={history} target={target || 0} />
+      </div>
     </div>
   )
 }

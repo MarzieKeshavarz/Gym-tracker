@@ -8,6 +8,7 @@ import {
 } from '../utils/storage.js'
 import { useCountUp } from '../utils/useCountUp.js'
 import WeeklyCalorieChart from './WeeklyCalorieChart.jsx'
+import StepWidget from './steps/StepWidget.jsx'
 
 export default function Dashboard({
   onSelectSection,
@@ -131,6 +132,9 @@ export default function Dashboard({
           <WeeklyCalorieChart data={calorieStats.weeklySeries} />
         </div>
       )}
+
+      {/* Daily steps — wellness metric, independent of workouts */}
+      <StepWidget onSetGoal={onGoToManagePlans} />
 
       {/* Last workout */}
       {stats.lastWorkout && (

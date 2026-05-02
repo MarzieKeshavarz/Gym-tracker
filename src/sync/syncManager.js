@@ -3,6 +3,7 @@ import {
   getRawUsers, setRawUsers,
   getRawPlans, setRawPlans,
   getRawLogs, setRawLogs,
+  getRawStepLogs, setRawStepLogs,
   registerChangeListener,
   notifyDataChange,
 } from '../utils/storage.js'
@@ -51,6 +52,7 @@ function snapshot() {
     users: getRawUsers(),
     plans: getRawPlans(),
     logs: getRawLogs(),
+    stepLogs: getRawStepLogs(),
   }
 }
 
@@ -58,6 +60,7 @@ function applySnapshot(snap) {
   setRawUsers(snap.users || [])
   setRawPlans(snap.plans || [])
   setRawLogs(snap.logs || [])
+  setRawStepLogs(snap.stepLogs || [])
 }
 
 // Compare two snapshots — purely a byte-level check to decide whether to push.
@@ -86,9 +89,10 @@ function mergeCollection(local, remote) {
 
 export function mergeSnapshots(local, remote) {
   return {
-    users: mergeCollection(local.users || [], remote.users || []),
-    plans: mergeCollection(local.plans || [], remote.plans || []),
-    logs:  mergeCollection(local.logs  || [], remote.logs  || []),
+    users:    mergeCollection(local.users    || [], remote.users    || []),
+    plans:    mergeCollection(local.plans    || [], remote.plans    || []),
+    logs:     mergeCollection(local.logs     || [], remote.logs     || []),
+    stepLogs: mergeCollection(local.stepLogs || [], remote.stepLogs || []),
   }
 }
 

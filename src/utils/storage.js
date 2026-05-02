@@ -3,6 +3,7 @@ import { DEFAULT_PLAN_TEMPLATE } from '../data/defaultPlan.js'
 const USERS_KEY            = 'gymlog_users'
 const PLANS_KEY            = 'gymlog_plans'
 const LOGS_KEY             = 'gymlog_logs'
+const STEP_LOGS_KEY        = 'gymlog_step_logs'
 const CURRENT_USER_KEY     = 'gymlog_currentUserId'
 
 // Legacy keys (pre-multi-user / multi-plan)
@@ -186,6 +187,11 @@ export function deleteUser(userId) {
   )
   writeJSON(LOGS_KEY, logs)
 
+  const stepLogs = readJSON(STEP_LOGS_KEY, []).map(s =>
+    s.userId === userId ? { ...s, deletedAt: now, updatedAt: now } : s
+  )
+  writeJSON(STEP_LOGS_KEY, stepLogs)
+
   if (getCurrentUserId() === userId) {
     localStorage.removeItem(CURRENT_USER_KEY)
   }
@@ -253,6 +259,10 @@ export function deletePlan(planId) {
     l.planId === planId ? { ...l, deletedAt: now, updatedAt: now } : l
   )
   writeJSON(LOGS_KEY, logs)
+  const stepLogs = readJSON(STEP_LOGS_KEY, []).map(s =>
+    s.planId === planId ? { ...s, deletedAt: now, updatedAt: now } : s
+  )
+  writeJSON(STEP_LOGS_KEY, stepLogs)
   notifyChange()
 }
 
@@ -332,6 +342,82 @@ export function restoreLog(logId) {
   writeJSON(LOGS_KEY, logs)
   notifyChange()
   return logs[idx]
+}
+
+// ─── Step logs ───────────────────────────────────────────────────────────────
+// Step tracking is intentionally separate from workout logs. One live entry
+// per (userId, planId, date); re-saving the same date upserts.
+
+function getAllStepLogs() {
+  return readJSON(STEP_LOGS_KEY, []).filter(isLive)
+}
+
+export function getRawStepLogs() {
+  return readJSON(STEP_LOGS_KEY, [])
+}
+
+export function setRawStepLogs(stepLogs) {
+  writeJSON(STEP_LOGS_KEY, stepLogs)
+}
+
+export function getStepLogs(userId, planId) {
+  return getAllStepLogs().filter(s =>
+    (!userId || s.userId === userId) &&
+    (!planId || s.planId === planId)
+  )
+}
+
+export function getStepLogForDate(userId, planId, date) {
+  return getAllStepLogs().find(s =>
+    s.userId === userId && s.planId === planId && s.date === date
+  ) || null
+}
+
+export function saveStepLog({ userId, planId, date, steps, targetAtTime }) {
+  const all = readJSON(STEP_LOGS_KEY, [])
+  const now = Date.now()
+  const safeSteps = Math.max(0, Math.round(Number(steps) || 0))
+
+  // Upsert by (userId, planId, date), reviving any tombstoned row for the same key.
+  const idx = all.findIndex(s =>
+    s.userId === userId && s.planId === planId && s.date === date
+  )
+  if (idx === -1) {
+    const entry = {
+      id: genId(),
+      userId,
+      planId,
+      date,
+      steps: safeSteps,
+      targetAtTime: targetAtTime ?? null,
+      createdAt: now,
+      updatedAt: now,
+    }
+    all.push(entry)
+    writeJSON(STEP_LOGS_KEY, all)
+    notifyChange()
+    return entry
+  }
+  const merged = {
+    ...all[idx],
+    steps: safeSteps,
+    targetAtTime: targetAtTime ?? all[idx].targetAtTime ?? null,
+    updatedAt: now,
+  }
+  delete merged.deletedAt
+  all[idx] = merged
+  writeJSON(STEP_LOGS_KEY, all)
+  notifyChange()
+  return merged
+}
+
+export function deleteStepLog(stepLogId) {
+  const now = Date.now()
+  const all = readJSON(STEP_LOGS_KEY, []).map(s =>
+    s.id === stepLogId ? { ...s, deletedAt: now, updatedAt: now } : s
+  )
+  writeJSON(STEP_LOGS_KEY, all)
+  notifyChange()
 }
 
 // ─── Last-workout / progress helpers (scoped) ───────────────────────────────
