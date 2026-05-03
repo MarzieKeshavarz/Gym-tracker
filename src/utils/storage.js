@@ -1,4 +1,4 @@
-import { DEFAULT_PLAN_TEMPLATE } from '../data/defaultPlan.js'
+import { DEFAULT_PLAN_TEMPLATE, BUILT_IN_TEMPLATES } from '../data/defaultPlan.js'
 
 const USERS_KEY            = 'gymlog_users'
 const PLANS_KEY            = 'gymlog_plans'
@@ -569,15 +569,17 @@ export function getCalorieStats(userId, planId) {
 
 // ─── Plan template helpers ───────────────────────────────────────────────────
 
-export function buildPlanFromTemplate(userId, name = 'My Plan') {
+export function buildPlanFromTemplate(userId, templateKey = 'mixed', name) {
+  const entry = BUILT_IN_TEMPLATES.find(t => t.key === templateKey) || BUILT_IN_TEMPLATES[0]
+  const tmpl = entry?.template || DEFAULT_PLAN_TEMPLATE
   return {
     id: genId(),
     userId,
-    name,
+    name: name || tmpl.name || 'My Plan',
     startDate: new Date().toISOString().slice(0, 10),
     endDate: null,
     isActive: false,
-    sections: DEFAULT_PLAN_TEMPLATE.sections.map(s => ({
+    sections: tmpl.sections.map(s => ({
       ...s,
       id: genId(),
       exercises: s.exercises.map(e => ({ ...e, id: genId() })),

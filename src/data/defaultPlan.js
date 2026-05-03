@@ -60,6 +60,79 @@ export const DEFAULT_PLAN_TEMPLATE = {
   ],
 }
 
+// Three-day body-part split. All exercises 2 sets × 8 reps as the default
+// starting point — users can override per exercise after creation.
+const reps2x8 = (names) => names.map(n => ({ id: n.toLowerCase().replace(/\s+/g, '-'), name: n, targetSets: 2, targetReps: 8 }))
+
+export const THREE_DAY_SPLIT_TEMPLATE = {
+  name: '3-Day Split',
+  sections: [
+    {
+      id: 'arms',
+      name: 'Arms',
+      icon: '💪',
+      color: '#ff6b35',
+      exercises: reps2x8([
+        'Dumbbell Press',
+        'Shoulder Flys',
+        'Dumbbell Shoulder Flys',
+        'Dumbbell Curls',
+        'Rope Curls',
+        'Barbell Curls',
+        'Triceps Extension',
+        'Triceps Overhead',
+      ]),
+    },
+    {
+      id: 'chest-back',
+      name: 'Chest & Back',
+      icon: '🏋️',
+      color: '#a78bfa',
+      exercises: reps2x8([
+        'Chest Press',
+        'Dumbbell Chest Press',
+        'Pec Deck',
+        'Seated Cable Row',
+        'Cable Face Pull',
+        'Pull Ups',
+      ]),
+    },
+    {
+      id: 'legs',
+      name: 'Legs',
+      icon: '🦵',
+      color: '#c8ff00',
+      exercises: reps2x8([
+        'Leg Press',
+        'Leg Extension',
+        'Leg Curls',
+        'Abductor',
+        'Calf Raises',
+        'Adductor',
+      ]),
+    },
+  ],
+}
+
+// Registry of named built-in templates. Order matters — first entry is the
+// fallback for legacy callers that don't pass a key.
+export const BUILT_IN_TEMPLATES = [
+  {
+    key: 'mixed',
+    label: 'Mixed Plan',
+    icon: '📋',
+    description: 'Lower / Upper / Class · 3×10 defaults',
+    template: DEFAULT_PLAN_TEMPLATE,
+  },
+  {
+    key: 'three-day',
+    label: '3-Day Split',
+    icon: '💪',
+    description: 'Arms · Chest & Back · Legs · 2×8 defaults',
+    template: THREE_DAY_SPLIT_TEMPLATE,
+  },
+]
+
 export const SECTION_PRESETS = {
   icons: ['🏋️', '🦵', '💪', '🧘', '🏃', '🚴', '🤸', '🥊', '🧗', '🏊'],
   colors: ['#c8ff00', '#ff6b35', '#a78bfa', '#38bdf8', '#f472b6', '#34d399'],

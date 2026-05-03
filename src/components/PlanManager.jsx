@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { usePlan } from '../context/PlanContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { buildPlanFromTemplate, buildBlankPlan, formatDateRange } from '../utils/storage.js'
+import { BUILT_IN_TEMPLATES } from '../data/defaultPlan.js'
 import { isSupabaseConfigured } from '../sync/supabaseClient.js'
 import { getSyncCode, formatSyncCode, subscribeSyncState, getSyncState } from '../sync/syncManager.js'
 import PlanWizard from './plan/PlanWizard.jsx'
@@ -19,9 +20,9 @@ export default function PlanManager({ onBack, onEditPlan, onGoToSync }) {
   useEffect(() => subscribeSyncState(setSyncState), [])
 
   const handleCreate = (kind) => {
-    const plan = kind === 'template'
-      ? buildPlanFromTemplate(currentUserId, 'My Plan')
-      : buildBlankPlan(currentUserId, 'New Plan')
+    const plan = kind === 'blank'
+      ? buildBlankPlan(currentUserId, 'New Plan')
+      : buildPlanFromTemplate(currentUserId, kind)
     if (plans.length === 0) plan.isActive = true
     savePlan(plan)
     setShowCreateMenu(false)
@@ -189,22 +190,37 @@ export default function PlanManager({ onBack, onEditPlan, onGoToSync }) {
               <path d="m9 6 6 6-6 6" />
             </svg>
           </button>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => handleCreate('template')}
-              className="bg-surface-2 border border-border rounded-xl p-4 text-left active:scale-95 transition-all hover:border-border-strong"
-            >
-              <div className="text-2xl mb-2">📋</div>
-              <p className="font-display font-bold text-sm text-text-primary tracking-tightish">Template</p>
-              <p className="caption mt-1">Pre-filled defaults</p>
-            </button>
+          <div className="flex flex-col gap-2">
+            {BUILT_IN_TEMPLATES.map(t => (
+              <button
+                key={t.key}
+                onClick={() => handleCreate(t.key)}
+                className="bg-surface-2 border border-border rounded-xl p-3 text-left active:scale-[0.99] transition-all hover:border-border-strong flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-xl bg-surface-3 border border-border flex items-center justify-center text-xl flex-shrink-0">
+                  {t.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-display font-bold text-sm text-text-primary tracking-tightish truncate">
+                    {t.label}
+                  </p>
+                  <p className="caption mt-0.5 truncate">{t.description}</p>
+                </div>
+                <span className="text-text-tertiary text-base flex-shrink-0">›</span>
+              </button>
+            ))}
             <button
               onClick={() => handleCreate('blank')}
-              className="bg-surface-2 border border-border rounded-xl p-4 text-left active:scale-95 transition-all hover:border-border-strong"
+              className="bg-surface-2 border border-border rounded-xl p-3 text-left active:scale-[0.99] transition-all hover:border-border-strong flex items-center gap-3"
             >
-              <div className="text-2xl mb-2">✏️</div>
-              <p className="font-display font-bold text-sm text-text-primary tracking-tightish">Blank</p>
-              <p className="caption mt-1">Build from scratch</p>
+              <div className="w-10 h-10 rounded-xl bg-surface-3 border border-border flex items-center justify-center text-xl flex-shrink-0">
+                ✏️
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-bold text-sm text-text-primary tracking-tightish">Blank</p>
+                <p className="caption mt-0.5">Build from scratch</p>
+              </div>
+              <span className="text-text-tertiary text-base flex-shrink-0">›</span>
             </button>
           </div>
           <button
