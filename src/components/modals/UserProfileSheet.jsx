@@ -3,6 +3,9 @@ import { useUser } from '../../context/UserContext.jsx'
 import { USER_AVATARS } from '../../data/defaultPlan.js'
 import BottomSheet from './BottomSheet.jsx'
 import ConfirmDialog from './ConfirmDialog.jsx'
+import { useBodyMetrics } from '../../hooks/useBodyMetrics.js'
+import BodyLogSheet from '../body/BodyLogSheet.jsx'
+import { formatDate } from '../../utils/storage.js'
 
 // Edit name + avatar for a single user, plus a destructive delete action.
 // `user` is the user being edited (defaults to currentUser).
@@ -17,24 +20,43 @@ export default function UserProfileSheet({
 
   const [name, setName] = useState(target?.name || '')
   const [avatar, setAvatar] = useState(target?.avatar || USER_AVATARS[0])
+  const [height, setHeight] = useState(target?.heightCm ? String(target.heightCm) : '')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [bodyLogOpen, setBodyLogOpen] = useState(false)
+
+  // Body summary — only meaningful for the user whose profile is open.
+  // The hook reads from currentUser, so this is only correct when target ===
+  // currentUser, which matches every entry point in the app today.
+  const { latest, hasAny } = useBodyMetrics()
 
   // Reset form whenever the sheet opens for a new user.
   useEffect(() => {
     if (open && target) {
       setName(target.name)
       setAvatar(target.avatar)
+      setHeight(target.heightCm ? String(target.heightCm) : '')
     }
   }, [open, target?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!target) return null
 
-  const dirty = name.trim() !== target.name || avatar !== target.avatar
+  const heightNum = height === '' ? null : Number(height)
+  const heightChanged =
+    (target.heightCm || null) !== (Number.isFinite(heightNum) && heightNum > 0 ? Math.round(heightNum * 10) / 10 : null)
+
+  const dirty =
+    name.trim() !== target.name ||
+    avatar !== target.avatar ||
+    heightChanged
   const validName = name.trim().length > 0
 
   const handleSave = () => {
     if (!validName || !dirty) return
-    editUser(target.id, { name: name.trim(), avatar })
+    const patch = { name: name.trim(), avatar }
+    if (heightChanged) {
+      patch.heightCm = Number.isFinite(heightNum) && heightNum > 0 ? heightNum : null
+    }
+    editUser(target.id, patch)
     onClose?.()
   }
 
@@ -50,6 +72,7 @@ export default function UserProfileSheet({
   const bullets = []
   if (counts.logs > 0) bullets.push(`${counts.logs} workout session${counts.logs === 1 ? '' : 's'}`)
   if (counts.plans > 0) bullets.push(`${counts.plans} plan${counts.plans === 1 ? '' : 's'}`)
+  if (counts.bodyMetrics > 0) bullets.push(`${counts.bodyMetrics} body measurement${counts.bodyMetrics === 1 ? '' : 's'}`)
   bullets.push('Streak history')
   bullets.push('Calorie totals')
 
@@ -120,6 +143,48 @@ export default function UserProfileSheet({
             </div>
           </div>
 
+          <div>
+            <p className="label mb-1.5">Height (for BMI)</p>
+            <div className="relative">
+              <input
+                type="number"
+                inputMode="numeric"
+                value={height}
+                onChange={e => setHeight(e.target.value)}
+                placeholder="e.g. 172"
+                min="80"
+                max="260"
+                step="0.5"
+                className="input-text pr-12"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 caption tabular">cm</span>
+            </div>
+          </div>
+
+          <div className="card-flat flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-soft border border-primary/25 flex items-center justify-center text-xl flex-shrink-0">
+              ⚖️
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="caption">Latest body</p>
+              {hasAny && latest ? (
+                <p className="body-md font-semibold tabular truncate">
+                  {latest.weight}<span className="text-text-tertiary text-xs font-body font-medium ml-1">kg</span>
+                  <span className="text-text-tertiary"> · {formatDate(latest.date + 'T00:00:00')}</span>
+                </p>
+              ) : (
+                <p className="body-sm">No measurements yet</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setBodyLogOpen(true)}
+              className="btn-ghost h-9 px-3 text-sm"
+            >
+              {hasAny ? 'Update' : 'Log'}
+            </button>
+          </div>
+
           {/* Secondary actions */}
           <div className="flex flex-col gap-2 pt-1">
             {onSwitchUser && (
@@ -149,6 +214,12 @@ export default function UserProfileSheet({
         tone="danger"
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      <BodyLogSheet
+        open={bodyLogOpen}
+        onClose={() => setBodyLogOpen(false)}
+        editing={hasAny ? latest : null}
       />
     </>
   )

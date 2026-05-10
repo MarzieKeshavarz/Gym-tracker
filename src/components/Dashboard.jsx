@@ -9,6 +9,7 @@ import {
 import { useCountUp } from '../utils/useCountUp.js'
 import WeeklyCalorieChart from './WeeklyCalorieChart.jsx'
 import StepWidget from './steps/StepWidget.jsx'
+import BodyWidget from './body/BodyWidget.jsx'
 
 export default function Dashboard({
   onSelectSection,
@@ -136,6 +137,9 @@ export default function Dashboard({
 
       {/* Daily steps — wellness metric, independent of workouts */}
       <StepWidget onSetGoal={onGoToManagePlans} />
+
+      {/* Body metrics — personal transformation tracker, independent of workouts */}
+      <BodyWidget onOpenProgress={onGoToProgress} />
 
       {/* Last workout */}
       {stats.lastWorkout && (

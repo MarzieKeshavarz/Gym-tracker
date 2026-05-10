@@ -11,6 +11,7 @@ import { useStepProgress } from '../hooks/useStepProgress.js'
 import StepStatsRow from './steps/StepStatsRow.jsx'
 import WeeklyStepChart from './steps/WeeklyStepChart.jsx'
 import StepHistoryList from './steps/StepHistoryList.jsx'
+import BodyProgressSection from './body/BodyProgressSection.jsx'
 
 export default function ProgressView({ onBack }) {
   const { currentUser } = useUser()
@@ -256,6 +257,8 @@ export default function ProgressView({ onBack }) {
       )}
 
       <StepsSection />
+
+      <BodyProgressSection />
     </div>
   )
 }

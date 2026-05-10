@@ -4,6 +4,7 @@ const USERS_KEY            = 'gymlog_users'
 const PLANS_KEY            = 'gymlog_plans'
 const LOGS_KEY             = 'gymlog_logs'
 const STEP_LOGS_KEY        = 'gymlog_step_logs'
+const BODY_METRICS_KEY     = 'gymlog_body_metrics'
 const CURRENT_USER_KEY     = 'gymlog_currentUserId'
 
 // Legacy keys (pre-multi-user / multi-plan)
@@ -156,6 +157,10 @@ export function updateUser(userId, patch) {
   const cleanPatch = {}
   if (typeof patch.name === 'string') cleanPatch.name = patch.name.trim() || users[idx].name
   if (typeof patch.avatar === 'string' && patch.avatar) cleanPatch.avatar = patch.avatar
+  if (Object.prototype.hasOwnProperty.call(patch, 'heightCm')) {
+    const h = Number(patch.heightCm)
+    cleanPatch.heightCm = Number.isFinite(h) && h > 0 ? Math.round(h * 10) / 10 : null
+  }
   users[idx] = stamp({ ...users[idx], ...cleanPatch })
   writeJSON(USERS_KEY, users)
   notifyChange()
@@ -165,7 +170,8 @@ export function updateUser(userId, patch) {
 export function getUserCascadeCounts(userId) {
   const plans = readJSON(PLANS_KEY, []).filter(p => isLive(p) && p.userId === userId)
   const logs  = readJSON(LOGS_KEY,  []).filter(l => isLive(l) && l.userId === userId)
-  return { plans: plans.length, logs: logs.length }
+  const body  = readJSON(BODY_METRICS_KEY, []).filter(b => isLive(b) && b.userId === userId)
+  return { plans: plans.length, logs: logs.length, bodyMetrics: body.length }
 }
 
 export function deleteUser(userId) {
@@ -191,6 +197,11 @@ export function deleteUser(userId) {
     s.userId === userId ? { ...s, deletedAt: now, updatedAt: now } : s
   )
   writeJSON(STEP_LOGS_KEY, stepLogs)
+
+  const bodyMetrics = readJSON(BODY_METRICS_KEY, []).map(b =>
+    b.userId === userId ? { ...b, deletedAt: now, updatedAt: now } : b
+  )
+  writeJSON(BODY_METRICS_KEY, bodyMetrics)
 
   if (getCurrentUserId() === userId) {
     localStorage.removeItem(CURRENT_USER_KEY)
@@ -417,6 +428,97 @@ export function deleteStepLog(stepLogId) {
     s.id === stepLogId ? { ...s, deletedAt: now, updatedAt: now } : s
   )
   writeJSON(STEP_LOGS_KEY, all)
+  notifyChange()
+}
+
+// ─── Body metrics ────────────────────────────────────────────────────────────
+// Track weight + optional measurements (cm) per user per day. Scoped to user,
+// not to plan — body changes describe the person and outlive plan changes.
+// One live entry per (userId, date); re-saving the same date upserts.
+
+const MEASUREMENT_KEYS = ['waist', 'hips', 'chest', 'arms', 'thighs']
+
+function sanitizeMeasurements(input) {
+  if (!input || typeof input !== 'object') return {}
+  const out = {}
+  for (const k of MEASUREMENT_KEYS) {
+    const raw = input[k]
+    if (raw == null || raw === '') continue
+    const n = Number(raw)
+    if (!Number.isFinite(n) || n <= 0) continue
+    out[k] = Math.round(n * 10) / 10
+  }
+  return out
+}
+
+function getAllBodyMetrics() {
+  return readJSON(BODY_METRICS_KEY, []).filter(isLive)
+}
+
+export function getRawBodyMetrics() {
+  return readJSON(BODY_METRICS_KEY, [])
+}
+
+export function setRawBodyMetrics(rows) {
+  writeJSON(BODY_METRICS_KEY, rows)
+}
+
+export function getBodyMetrics(userId) {
+  if (!userId) return []
+  return getAllBodyMetrics().filter(b => b.userId === userId)
+}
+
+export function getBodyMetricForDate(userId, date) {
+  return getAllBodyMetrics().find(b =>
+    b.userId === userId && b.date === date
+  ) || null
+}
+
+export function saveBodyMetric({ userId, date, weight, measurements }) {
+  if (!userId || !date) return null
+  const w = Number(weight)
+  if (!Number.isFinite(w) || w <= 0) return null
+
+  const all = readJSON(BODY_METRICS_KEY, [])
+  const now = Date.now()
+  const safeWeight = Math.round(w * 10) / 10
+  const safeMeas = sanitizeMeasurements(measurements)
+
+  const idx = all.findIndex(b => b.userId === userId && b.date === date)
+  if (idx === -1) {
+    const entry = {
+      id: genId(),
+      userId,
+      date,
+      weight: safeWeight,
+      measurements: safeMeas,
+      createdAt: now,
+      updatedAt: now,
+    }
+    all.push(entry)
+    writeJSON(BODY_METRICS_KEY, all)
+    notifyChange()
+    return entry
+  }
+  const merged = {
+    ...all[idx],
+    weight: safeWeight,
+    measurements: safeMeas,
+    updatedAt: now,
+  }
+  delete merged.deletedAt
+  all[idx] = merged
+  writeJSON(BODY_METRICS_KEY, all)
+  notifyChange()
+  return merged
+}
+
+export function deleteBodyMetric(metricId) {
+  const now = Date.now()
+  const all = readJSON(BODY_METRICS_KEY, []).map(b =>
+    b.id === metricId ? { ...b, deletedAt: now, updatedAt: now } : b
+  )
+  writeJSON(BODY_METRICS_KEY, all)
   notifyChange()
 }
 

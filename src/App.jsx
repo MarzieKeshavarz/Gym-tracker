@@ -3,6 +3,7 @@ import { UserProvider, useUser } from './context/UserContext.jsx'
 import { PlanProvider, usePlan } from './context/PlanContext.jsx'
 import { LogProvider, useLogs } from './context/LogContext.jsx'
 import { StepProvider } from './context/StepContext.jsx'
+import { BodyMetricsProvider } from './context/BodyMetricsContext.jsx'
 import UserSelect from './components/UserSelect.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import WorkoutSection from './components/WorkoutSection.jsx'
@@ -30,7 +31,9 @@ export default function App() {
       <PlanProvider>
         <LogProvider>
           <StepProvider>
-            <Shell />
+            <BodyMetricsProvider>
+              <Shell />
+            </BodyMetricsProvider>
           </StepProvider>
         </LogProvider>
       </PlanProvider>
