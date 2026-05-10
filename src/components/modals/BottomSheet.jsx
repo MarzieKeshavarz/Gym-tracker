@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 const SWIPE_DISMISS_PX = 90
 
@@ -64,7 +65,10 @@ export default function BottomSheet({ open, onClose, title, children, footer }) 
 
   if (!visible) return null
 
-  return (
+  // Portal to body so the sheet escapes ancestor stacking contexts (parents
+  // with non-`none` transform/filter — e.g. our `slide-up` animation — make a
+  // page-tall containing block, which would push the sheet below the fold).
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div
         onClick={close}
@@ -108,6 +112,7 @@ export default function BottomSheet({ open, onClose, title, children, footer }) 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

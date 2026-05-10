@@ -1,7 +1,10 @@
 import React, { useState, useCallback } from 'react'
 
 export default function ExerciseLogger({ exercise, lastEntry, sets, onChange }) {
-  const [expanded, setExpanded] = useState(true)
+  // Start collapsed for a tidy section view; tap the row to start logging.
+  // Pre-expand exercises that already have data (edit mode / partial save).
+  const hasData = sets.some(s => s.weight !== '' || s.reps !== '')
+  const [expanded, setExpanded] = useState(hasData)
 
   const updateSet = useCallback((idx, field, value) => {
     const next = sets.map((s, i) => i === idx ? { ...s, [field]: value } : s)

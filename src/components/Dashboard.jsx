@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useUser } from '../context/UserContext.jsx'
 import { usePlan } from '../context/PlanContext.jsx'
 import { useLogs } from '../context/LogContext.jsx'
@@ -21,6 +21,7 @@ export default function Dashboard({
   const { currentUser } = useUser()
   const { activePlan } = usePlan()
   const { logs, version } = useLogs()
+  const [recentExpanded, setRecentExpanded] = useState(false)
 
   const stats = useMemo(
     () => activePlan ? getDashboardStats(currentUser?.id, activePlan.id) : null,
@@ -186,54 +187,70 @@ export default function Dashboard({
         )}
       </div>
 
-      {/* Recent activity */}
+      {/* Recent activity — collapsed by default to keep the dashboard clean */}
       {recentLogs.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-3 px-0.5">
-            <p className="label">Recent sessions</p>
-            <button
-              onClick={onGoToProgress}
-              className="text-primary text-xs font-body font-semibold uppercase tracking-label active:scale-95 transition-all"
+          <button
+            onClick={() => setRecentExpanded(v => !v)}
+            className="w-full flex items-center gap-2 mb-3 px-0.5 text-left active:opacity-80 transition-opacity"
+            aria-expanded={recentExpanded}
+          >
+            <p className="label flex-1">Recent sessions</p>
+            <span className="caption tabular text-text-tertiary">
+              {recentLogs.length} {recentLogs.length === 1 ? 'session' : 'sessions'}
+            </span>
+            <svg
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className={`w-4 h-4 text-text-tertiary transition-transform ${recentExpanded ? 'rotate-180' : ''}`}
             >
-              Progress →
-            </button>
-          </div>
-          <div className="flex flex-col gap-2">
-            {recentLogs.map(log => {
-              const section = activePlan.sections.find(s => s.id === log.sectionId)
-              const wasEdited = log.updatedAt && log.date &&
-                log.updatedAt - new Date(log.date).getTime() > 60_000
-              return (
-                <button
-                  key={log.id}
-                  onClick={() => onSelectSession?.(log)}
-                  className="card-flat flex items-center gap-3 text-left active:scale-[0.99] transition-all hover:border-border-strong"
-                >
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                    style={{
-                      backgroundColor: hexToBg(section?.color || '#6EA8FF'),
-                      border: `1px solid ${hexToBg(section?.color || '#6EA8FF', 0.25)}`,
-                    }}
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          {recentExpanded && (
+            <div className="flex flex-col gap-2 fade-in">
+              {recentLogs.map(log => {
+                const section = activePlan.sections.find(s => s.id === log.sectionId)
+                const wasEdited = log.updatedAt && log.date &&
+                  log.updatedAt - new Date(log.date).getTime() > 60_000
+                return (
+                  <button
+                    key={log.id}
+                    onClick={() => onSelectSession?.(log)}
+                    className="card-flat flex items-center gap-3 text-left active:scale-[0.99] transition-all hover:border-border-strong"
                   >
-                    {section?.icon || '🏋️'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="body-md font-semibold truncate flex items-center gap-1.5">
-                      {section?.name || log.sectionName || log.sectionId}
-                      {wasEdited && (
-                        <span className="caption text-text-tertiary normal-case">· edited</span>
-                      )}
-                    </p>
-                    <p className="caption tabular">
-                      {formatDate(log.date)} · {log.exercises?.length || 0} exercises
-                    </p>
-                  </div>
-                  <span className="caption tabular">{formatTime(log.date)}</span>
-                </button>
-              )
-            })}
-          </div>
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                      style={{
+                        backgroundColor: hexToBg(section?.color || '#6EA8FF'),
+                        border: `1px solid ${hexToBg(section?.color || '#6EA8FF', 0.25)}`,
+                      }}
+                    >
+                      {section?.icon || '🏋️'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="body-md font-semibold truncate flex items-center gap-1.5">
+                        {section?.name || log.sectionName || log.sectionId}
+                        {wasEdited && (
+                          <span className="caption text-text-tertiary normal-case">· edited</span>
+                        )}
+                      </p>
+                      <p className="caption tabular">
+                        {formatDate(log.date)} · {log.exercises?.length || 0} exercises
+                      </p>
+                    </div>
+                    <span className="caption tabular">{formatTime(log.date)}</span>
+                  </button>
+                )
+              })}
+              <button
+                onClick={onGoToProgress}
+                className="self-end text-primary text-xs font-body font-semibold uppercase tracking-label active:scale-95 transition-all mt-1"
+              >
+                See all in Progress →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
