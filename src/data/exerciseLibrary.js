@@ -27,10 +27,12 @@ export const EXERCISE_LIBRARY = [
 
   // Back
   E('Pull-up', 'Back', ['bodyweight', 'vertical', 'pull'], { reps: 8 }),
+  E('Assisted Pull-up', 'Back', ['machine', 'vertical', 'pull', 'assisted'], { sets: 4, reps: 6 }),
   E('Chin-up', 'Back', ['bodyweight', 'vertical', 'pull'], { reps: 8 }),
   E('Lat Pulldown', 'Back', ['cable', 'vertical', 'pull'], { reps: 12 }),
   E('Barbell Row', 'Back', ['barbell', 'horizontal', 'pull']),
   E('Cable Row', 'Back', ['cable', 'horizontal', 'pull'], { reps: 12 }),
+  E('Seated Row Machine', 'Back', ['machine', 'horizontal', 'pull'], { reps: 10 }),
   E('Dumbbell Row', 'Back', ['dumbbell', 'horizontal', 'pull']),
   E('T-Bar Row', 'Back', ['barbell', 'horizontal', 'pull']),
   E('Face Pull', 'Back', ['cable', 'rear', 'shoulders'], { reps: 15 }),
@@ -39,10 +41,13 @@ export const EXERCISE_LIBRARY = [
   // Shoulders
   E('Overhead Press', 'Shoulders', ['barbell', 'press', 'push'], { sets: 4, reps: 8 }),
   E('Dumbbell Shoulder Press', 'Shoulders', ['dumbbell', 'press']),
+  E('Machine Shoulder Press', 'Shoulders', ['machine', 'press', 'push'], { reps: 10 }),
   E('Arnold Press', 'Shoulders', ['dumbbell', 'press']),
   E('Lateral Raise', 'Shoulders', ['dumbbell', 'isolation'], { reps: 15 }),
+  E('Single Arm Lateral Raise', 'Shoulders', ['dumbbell', 'cable', 'isolation', 'unilateral'], { reps: 12 }),
   E('Front Raise', 'Shoulders', ['dumbbell', 'isolation'], { reps: 12 }),
   E('Reverse Fly', 'Shoulders', ['dumbbell', 'rear', 'isolation'], { reps: 12 }),
+  E('Reverse Pec Deck', 'Shoulders', ['machine', 'rear', 'isolation'], { reps: 15 }),
   E('Upright Row', 'Shoulders', ['barbell', 'pull']),
 
   // Arms
@@ -62,6 +67,7 @@ export const EXERCISE_LIBRARY = [
   E('Leg Press', 'Legs', ['machine', 'compound'], { reps: 12 }),
   E('Lunge', 'Legs', ['dumbbell', 'unilateral'], { reps: 10 }),
   E('Bulgarian Split Squat', 'Legs', ['dumbbell', 'unilateral'], { reps: 8 }),
+  E('Smith Split Squat', 'Legs', ['smith', 'unilateral'], { reps: 10 }),
   E('Romanian Deadlift', 'Legs', ['barbell', 'hinge', 'hamstrings']),
   E('Leg Curl', 'Legs', ['machine', 'hamstrings'], { reps: 12 }),
   E('Leg Extension', 'Legs', ['machine', 'quads'], { reps: 12 }),
@@ -78,6 +84,8 @@ export const EXERCISE_LIBRARY = [
   // Core
   E('Plank', 'Core', ['bodyweight', 'isometric'], { sets: 3, reps: 1 }),
   E('Side Plank', 'Core', ['bodyweight', 'isometric'], { sets: 3, reps: 1 }),
+  E('Pallof Press', 'Core', ['cable', 'anti-rotation'], { reps: 12 }),
+  E('Dead Bug', 'Core', ['bodyweight', 'anti-extension'], { reps: 8 }),
   E('Hanging Leg Raise', 'Core', ['bodyweight'], { reps: 10 }),
   E('Cable Crunch', 'Core', ['cable'], { reps: 15 }),
   E('Russian Twist', 'Core', ['bodyweight'], { reps: 20 }),
@@ -91,6 +99,8 @@ export const EXERCISE_LIBRARY = [
   E('Row Machine', 'Cardio', ['rowing'], { sets: 1, reps: 1 }),
   E('Stationary Bike', 'Cardio', ['cycling'], { sets: 1, reps: 1 }),
   E('Swim', 'Cardio', ['swimming'], { sets: 1, reps: 1 }),
+  E('Tennis', 'Cardio', ['sport', 'racket'], { sets: 1, reps: 1 }),
+  E('Padel', 'Cardio', ['sport', 'racket'], { sets: 1, reps: 1 }),
   E('Jump Rope', 'Cardio', ['skipping'], { sets: 1, reps: 1 }),
 
   // Full Body
