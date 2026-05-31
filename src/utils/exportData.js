@@ -94,8 +94,31 @@ function safeSlug(s) {
   return (s || 'user').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'user'
 }
 
+// One combined CSV with three sections, separated by a section header row.
+// Single-file download avoids browser "multiple downloads" blocking and still
+// opens in Excel / Numbers as one sheet — each section is a contiguous block.
+function buildCombinedCSV({ logs, planById, stepLogs, body, userName }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const blocks = []
+
+  blocks.push(
+    `# GymLog export · ${userName || 'user'} · ${today}`,
+    '',
+    `## Workouts (${logs.length} session${logs.length === 1 ? '' : 's'})`,
+    buildWorkoutsCSV(logs, planById),
+    '',
+    `## Steps (${stepLogs.length} entr${stepLogs.length === 1 ? 'y' : 'ies'})`,
+    buildStepsCSV(stepLogs),
+    '',
+    `## Body (${body.length} entr${body.length === 1 ? 'y' : 'ies'})`,
+    buildBodyCSV(body),
+    '',
+  )
+  return blocks.join('\r\n')
+}
+
 export function exportUserActivities(user) {
-  if (!user?.id) return { workouts: 0, steps: 0, body: 0 }
+  if (!user?.id) return { workouts: 0, steps: 0, body: 0, file: null }
 
   const logs = getLogs(user.id)
   const stepLogs = getStepLogs(user.id)
@@ -103,18 +126,16 @@ export function exportUserActivities(user) {
   const plans = getPlans(user.id)
   const planById = new Map(plans.map(p => [p.id, p]))
 
+  const counts = { workouts: logs.length, steps: stepLogs.length, body: body.length }
+  if (!counts.workouts && !counts.steps && !counts.body) {
+    return { ...counts, file: null }
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const slug = safeSlug(user.name)
+  const filename = `gymlog-${slug}-${today}.csv`
+  const csv = buildCombinedCSV({ logs, planById, stepLogs, body, userName: user.name })
+  downloadFile(csv, filename)
 
-  if (logs.length) {
-    downloadFile(buildWorkoutsCSV(logs, planById), `gymlog-workouts-${slug}-${today}.csv`)
-  }
-  if (stepLogs.length) {
-    downloadFile(buildStepsCSV(stepLogs), `gymlog-steps-${slug}-${today}.csv`)
-  }
-  if (body.length) {
-    downloadFile(buildBodyCSV(body), `gymlog-body-${slug}-${today}.csv`)
-  }
-
-  return { workouts: logs.length, steps: stepLogs.length, body: body.length }
+  return { ...counts, file: filename }
 }

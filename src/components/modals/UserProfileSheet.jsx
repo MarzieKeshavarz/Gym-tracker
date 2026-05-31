@@ -63,13 +63,13 @@ export default function UserProfileSheet({
   }
 
   const handleExport = () => {
-    const counts = exportUserActivities(target)
-    const parts = []
-    if (counts.workouts) parts.push(`${counts.workouts} workout${counts.workouts === 1 ? '' : 's'}`)
-    if (counts.steps) parts.push(`${counts.steps} step entr${counts.steps === 1 ? 'y' : 'ies'}`)
-    if (counts.body) parts.push(`${counts.body} body entr${counts.body === 1 ? 'y' : 'ies'}`)
-    setExportMsg(parts.length ? `Exported ${parts.join(', ')}` : 'Nothing to export yet')
-    setTimeout(() => setExportMsg(null), 2500)
+    const { workouts, steps, body, file } = exportUserActivities(target)
+    if (!file) {
+      setExportMsg('Nothing to export yet')
+    } else {
+      setExportMsg(`Exported ${workouts} workout${workouts === 1 ? '' : 's'} · ${steps} step · ${body} body`)
+    }
+    setTimeout(() => setExportMsg(null), 3500)
   }
 
   const handleDeleteClick = () => setConfirmOpen(true)
