@@ -6,6 +6,7 @@ import ConfirmDialog from './ConfirmDialog.jsx'
 import { useBodyMetrics } from '../../hooks/useBodyMetrics.js'
 import BodyLogSheet from '../body/BodyLogSheet.jsx'
 import { formatDate } from '../../utils/storage.js'
+import { exportUserActivities } from '../../utils/exportData.js'
 
 // Edit name + avatar for a single user, plus a destructive delete action.
 // `user` is the user being edited (defaults to currentUser).
@@ -23,6 +24,7 @@ export default function UserProfileSheet({
   const [height, setHeight] = useState(target?.heightCm ? String(target.heightCm) : '')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [bodyLogOpen, setBodyLogOpen] = useState(false)
+  const [exportMsg, setExportMsg] = useState(null)
 
   // Body summary — only meaningful for the user whose profile is open.
   // The hook reads from currentUser, so this is only correct when target ===
@@ -58,6 +60,16 @@ export default function UserProfileSheet({
     }
     editUser(target.id, patch)
     onClose?.()
+  }
+
+  const handleExport = () => {
+    const counts = exportUserActivities(target)
+    const parts = []
+    if (counts.workouts) parts.push(`${counts.workouts} workout${counts.workouts === 1 ? '' : 's'}`)
+    if (counts.steps) parts.push(`${counts.steps} step entr${counts.steps === 1 ? 'y' : 'ies'}`)
+    if (counts.body) parts.push(`${counts.body} body entr${counts.body === 1 ? 'y' : 'ies'}`)
+    setExportMsg(parts.length ? `Exported ${parts.join(', ')}` : 'Nothing to export yet')
+    setTimeout(() => setExportMsg(null), 2500)
   }
 
   const handleDeleteClick = () => setConfirmOpen(true)
@@ -196,6 +208,15 @@ export default function UserProfileSheet({
               </button>
             )}
             <button
+              onClick={handleExport}
+              className="w-full h-11 rounded-xl bg-surface-2 border border-border text-text-primary font-body font-medium text-sm active:scale-[0.98] transition-all hover:border-border-strong inline-flex items-center justify-center gap-2"
+            >
+              <DownloadIcon /> Export data
+            </button>
+            {exportMsg && (
+              <p className="caption text-center text-text-secondary tabular">{exportMsg}</p>
+            )}
+            <button
               onClick={handleDeleteClick}
               className="w-full h-11 rounded-xl bg-danger/10 border border-danger/25 text-danger font-body font-semibold text-sm active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2"
             >
@@ -233,6 +254,16 @@ function SwitchIcon() {
       <path d="M21 16v5h-5" />
       <path d="M15 15l6 6" />
       <path d="M4 4l5 5" />
+    </svg>
+  )
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
     </svg>
   )
 }
