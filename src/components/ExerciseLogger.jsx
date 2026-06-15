@@ -1,6 +1,12 @@
 import React, { useState, useCallback } from 'react'
 
 export default function ExerciseLogger({ exercise, lastEntry, sets, onChange }) {
+  // 1×1 exercises (Tennis, Padel, Swim, Yoga, HIIT, treadmill, etc.) aren't
+  // really sets-and-reps movements — forcing a weight/reps entry meant users
+  // either skipped logging them entirely or typed garbage numbers. Render a
+  // single "Mark done" toggle for those instead so the streak picks them up.
+  const isActivity = exercise.targetSets === 1 && exercise.targetReps === 1
+
   // Start collapsed for a tidy section view; tap the row to start logging.
   // Pre-expand exercises that already have data (edit mode / partial save).
   const hasData = sets.some(s => s.weight !== '' || s.reps !== '')
@@ -32,6 +38,48 @@ export default function ExerciseLogger({ exercise, lastEntry, sets, onChange }) 
 
   const isComplete = sets.every(s => s.weight !== '' && s.reps !== '')
   const completedSets = sets.filter(s => s.weight !== '' || s.reps !== '').length
+
+  // Activity-type variant: a single toggle. "Done" pins reps=1 so it passes the
+  // save filter (s.weight !== '' || s.reps !== ''); "Not done" clears it.
+  if (isActivity) {
+    const done = sets[0]?.reps !== '' && sets[0]?.reps != null
+    const toggle = () => onChange([{ weight: '', reps: done ? '' : '1' }])
+    return (
+      <button
+        onClick={toggle}
+        className={`card w-full flex items-center gap-3 text-left active:scale-[0.99] transition-all ${
+          done ? 'border-primary/35' : ''
+        }`}
+      >
+        <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all duration-300 ${
+          done ? 'border-primary bg-primary scale-110 shadow-glow' : 'border-border-strong'
+        }`}>
+          {done && (
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+              <path className="check-draw" d="M20 6 9 17l-5-5" />
+            </svg>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="font-display font-bold text-[16px] tracking-tightish text-text-primary leading-tight">
+            {exercise.name}
+          </p>
+          <p className="caption mt-0.5">
+            Activity{lastEntry ? ` · last ${new Date(lastEntry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+          </p>
+        </div>
+
+        <span className={`text-xs font-body font-semibold uppercase tracking-label px-2.5 h-7 rounded-lg inline-flex items-center flex-shrink-0 ${
+          done
+            ? 'text-primary bg-primary-soft border border-primary/30'
+            : 'text-text-secondary bg-surface-2 border border-border'
+        }`}>
+          {done ? 'Done' : 'Mark done'}
+        </span>
+      </button>
+    )
+  }
 
   return (
     <div className={`card transition-all ${isComplete ? 'border-primary/35' : ''}`}>
