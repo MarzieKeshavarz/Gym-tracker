@@ -584,6 +584,26 @@ export function getExerciseHistory(userId, planId, exerciseId, exerciseName) {
   return history.sort((a, b) => new Date(a.date) - new Date(b.date))
 }
 
+// Local-date helpers — keep YYYY-MM-DD math out of UTC-vs-local territory so
+// timezone offsets can't drop a day. Inlined (not imported from stepAnalytics)
+// to avoid a storage <-> stepAnalytics circular import.
+function localDayKey(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+function daysBetweenKeys(aKey, bKey) {
+  const [ay, am, ad] = aKey.split('-').map(Number)
+  const [by, bm, bd] = bKey.split('-').map(Number)
+  return Math.round((new Date(ay, am - 1, ad) - new Date(by, bm - 1, bd)) / 86400000)
+}
+
+// Rest days are part of a healthy program — a 3×/week split has 2-day gaps
+// between sessions and would otherwise reset streak after every workout. Up
+// to 3 rest days (= gap of 3) still keeps the chain alive; 4+ breaks it.
+const STREAK_MAX_REST_DAYS = 3
+
 export function getDashboardStats(userId, planId) {
   const logs = getLogs(userId, planId)
   const now = new Date()
@@ -597,18 +617,19 @@ export function getDashboardStats(userId, planId) {
   const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))
   const lastLog = sorted[0]
 
-  const uniqueDays = [...new Set(logs.map(l => l.date.slice(0, 10)))].sort().reverse()
-  let streak = 0
-  let check = new Date()
-  check.setHours(0, 0, 0, 0)
+  const todayKey = localDayKey(now)
+  const uniqueDays = [...new Set(logs.map(l => l.date.slice(0, 10)))]
+    .filter(d => d <= todayKey) // ignore future-dated logs
+    .sort()
+    .reverse()
 
+  let streak = 0
+  let prevKey = todayKey
   for (const day of uniqueDays) {
-    const d = new Date(day)
-    const diff = Math.floor((check - d) / 86400000)
-    if (diff <= 1) {
-      streak++
-      check = d
-    } else break
+    const gap = daysBetweenKeys(prevKey, day)
+    if (gap > STREAK_MAX_REST_DAYS) break
+    streak++
+    prevKey = day
   }
 
   return {
