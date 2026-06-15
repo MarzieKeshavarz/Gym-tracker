@@ -523,14 +523,30 @@ export function deleteBodyMetric(metricId) {
 }
 
 // ─── Last-workout / progress helpers (scoped) ───────────────────────────────
+// Matches by exerciseId first, then falls back to a case/space-normalized name
+// match. The fallback is what lets the same lift (e.g. "Assisted Pull-up")
+// share history across sections — a plan built from a template gives each
+// section its own genId(), so two sections holding the same lift would
+// otherwise log into disjoint timelines.
 
-export function getLastLogForExercise(userId, planId, exerciseId) {
+const normalizeName = (s) => (s || '').toLowerCase().trim().replace(/\s+/g, ' ')
+
+function findExerciseInLog(log, exerciseId, exerciseName) {
+  if (!log.exercises?.length) return null
+  const byId = log.exercises.find(e => e.exerciseId === exerciseId)
+  if (byId) return byId
+  if (!exerciseName) return null
+  const want = normalizeName(exerciseName)
+  return log.exercises.find(e => normalizeName(e.exerciseName) === want) || null
+}
+
+export function getLastLogForExercise(userId, planId, exerciseId, exerciseName) {
   const logs = getLogs(userId, planId)
   let lastEntry = null
   let lastDate = null
 
   for (const log of logs) {
-    const ex = log.exercises?.find(e => e.exerciseId === exerciseId)
+    const ex = findExerciseInLog(log, exerciseId, exerciseName)
     if (ex) {
       const d = new Date(log.date)
       if (!lastDate || d > lastDate) {
@@ -542,12 +558,12 @@ export function getLastLogForExercise(userId, planId, exerciseId) {
   return lastEntry
 }
 
-export function getExerciseHistory(userId, planId, exerciseId) {
+export function getExerciseHistory(userId, planId, exerciseId, exerciseName) {
   const logs = getLogs(userId, planId)
   const history = []
 
   for (const log of logs) {
-    const ex = log.exercises?.find(e => e.exerciseId === exerciseId)
+    const ex = findExerciseInLog(log, exerciseId, exerciseName)
     if (ex && ex.sets?.length > 0) {
       const weights = ex.sets.map(s => Number(s.weight)).filter(w => w > 0)
       const maxWeight = weights.length ? Math.max(...weights) : 0

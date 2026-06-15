@@ -68,7 +68,7 @@ export default function WorkoutSection({ section, editingLog, onBack, onSaved })
     const map = {}
     if (!currentUserId || !activePlan) return map
     section.exercises.forEach(ex => {
-      map[ex.id] = getLastLogForExercise(currentUserId, activePlan.id, ex.id)
+      map[ex.id] = getLastLogForExercise(currentUserId, activePlan.id, ex.id, ex.name)
     })
     return map
   }, [section, currentUserId, activePlan])

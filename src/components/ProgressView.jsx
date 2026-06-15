@@ -44,8 +44,8 @@ export default function ProgressView({ onBack }) {
 
   const history = useMemo(() => {
     if (!exerciseId || !currentUser) return []
-    return getExerciseHistory(currentUser.id, activePlan.id, exerciseId)
-  }, [exerciseId, currentUser, activePlan, version])
+    return getExerciseHistory(currentUser.id, activePlan.id, exerciseId, exercise?.name)
+  }, [exerciseId, exercise?.name, currentUser, activePlan, version])
 
   const stats = useMemo(() => {
     if (!history.length) return null
@@ -116,7 +116,7 @@ export default function ProgressView({ onBack }) {
             <div className="grid grid-cols-2 gap-2.5">
               {selectedSection.exercises.map(ex => {
                 const hist = currentUser
-                  ? getExerciseHistory(currentUser.id, activePlan.id, ex.id)
+                  ? getExerciseHistory(currentUser.id, activePlan.id, ex.id, ex.name)
                   : []
                 const hasData = hist.length > 0
                 const active = exerciseId === ex.id
